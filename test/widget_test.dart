@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:android_app/main.dart';
+import 'package:android_app/screens/login_screen.dart';
+import 'package:android_app/screens/register_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('login form shows a validation error for an invalid email', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.enterText(find.byType(TextFormField).at(0), 'not-an-email');
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Login'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Enter a valid email'), findsOneWidget);
+  });
+
+  testWidgets('register form validates the full name and password length', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'A');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'user@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(2), '123');
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Create account'));
+    await tester.pump();
+
+    expect(find.text('Name must be at least 2 characters'), findsOneWidget);
+    expect(find.text('Password must be at least 6 characters'), findsOneWidget);
   });
 }

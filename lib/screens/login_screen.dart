@@ -27,6 +27,31 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Enter email';
+    }
+
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return 'Enter a valid email';
+    }
+
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Enter password';
+    }
+
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,16 +73,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Enter email' : null,
+                  validator: _validateEmail,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: true,
                   decoration: const InputDecoration(labelText: 'Password'),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Enter password' : null,
+                  validator: _validatePassword,
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(onPressed: _submit, child: const Text('Login')),

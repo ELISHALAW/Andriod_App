@@ -30,6 +30,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Enter name';
+    }
+
+    if (value.trim().length < 2) {
+      return 'Name must be at least 2 characters';
+    }
+
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Enter email';
+    }
+
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return 'Enter a valid email';
+    }
+
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,24 +86,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _nameCtrl,
                   decoration: const InputDecoration(labelText: 'Full name'),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Enter name' : null,
+                  validator: _validateName,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Enter email' : null,
+                  validator: _validateEmail,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: true,
                   decoration: const InputDecoration(labelText: 'Password'),
-                  validator: (v) =>
-                      (v == null || v.length < 6) ? 'Password too short' : null,
+                  validator: _validatePassword,
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
