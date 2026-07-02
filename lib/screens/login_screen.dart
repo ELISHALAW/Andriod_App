@@ -24,6 +24,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Logging in...')));
+
+      // Navigate to the app home on successful login.
+      // Uses named route '/' which corresponds to the MaterialApp `home`.
+      Navigator.pushReplacementNamed(context, '/');
     }
   }
 
@@ -32,8 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
       return 'Enter email';
     }
 
+    final trimmedValue = value.trim();
+    if (!trimmedValue.contains('@')) {
+      return 'Email must contain @';
+    }
+
     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailRegex.hasMatch(value.trim())) {
+    if (!emailRegex.hasMatch(trimmedValue)) {
       return 'Enter a valid email';
     }
 
