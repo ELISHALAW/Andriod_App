@@ -17,14 +17,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(
-          0xFFF8FAFC,
-        ), // Fixed: Changed # to 0xFF
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
-      home: const HomeScreen(),
+      initialRoute: '/', // Important
       routes: {
-        '/login': (ctx) => const LoginScreen(),
-        '/register': (ctx) => const RegisterScreen(),
+        '/': (context) => const HomeScreen(), // Important
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
       },
     );
   }
@@ -134,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 18),
 
-              // Promo cards horizontal
+              // Promo cards
               SizedBox(
                 height: 150,
                 child: ListView(
@@ -191,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 18),
 
-              // Recommended list
+              // Recommended
               const Text(
                 'Recommended',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

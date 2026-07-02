@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
+
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -26,15 +28,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _submit() {
-    // Intercepts the submit action.
-    // It loops through all validators below. If any return text, it blocks processing.
     if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Registering profile...')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-      // Navigate to your landing page or homepage route here
-      Navigator.pushReplacementNamed(context, '/');
+      // Go back to login or directly to home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }
   }
 

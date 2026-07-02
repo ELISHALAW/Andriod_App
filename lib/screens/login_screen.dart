@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../main.dart';   // Adjust path if needed
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,43 +22,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Logging in...')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login successful!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-      // Navigate to the app home on successful login.
-      // Uses named route '/' which corresponds to the MaterialApp `home`.
-      Navigator.pushReplacementNamed(context, '/');
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/', 
+        (route) => false,
+      );
     }
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Enter email';
-    }
-
-    final trimmedValue = value.trim();
-    if (!trimmedValue.contains('@')) {
-      return 'Email must contain @';
-    }
-
-    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailRegex.hasMatch(trimmedValue)) {
-      return 'Enter a valid email';
-    }
-
+    if (value == null || value.trim().isEmpty) return 'Enter email';
+    final trimmed = value.trim();
+    if (!trimmed.contains('@')) return 'Email must contain @';
+    final regex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!regex.hasMatch(trimmed)) return 'Enter a valid email';
     return null;
   }
 
   String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Enter password';
-    }
-
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-
+    if (value == null || value.isEmpty) return 'Enter password';
+    if (value.length < 6) return 'Password must be at least 6 characters';
     return null;
   }
 
