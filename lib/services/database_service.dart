@@ -203,4 +203,124 @@ class DatabaseService {
       return {'success': false, 'message': 'Login failed: $e', 'data': null};
     }
   }
+
+  /// Fetch notifications for a user
+  static Future<Map<String, dynamic>> getNotifications({
+    required int userId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/get_notifications.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? [],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Fetch notifications failed: $e',
+        'data': [],
+      };
+    }
+  }
+
+  /// Mark a notification as read
+  static Future<Map<String, dynamic>> markNotificationRead({
+    required int notificationId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/mark_notification_read.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': notificationId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Mark notification failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Delete a notification
+  static Future<Map<String, dynamic>> deleteNotification({
+    required int notificationId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/delete_notification.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': notificationId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Delete notification failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Generate and save a random notification for a user
+  static Future<Map<String, dynamic>> generateRandomNotification({
+    required int userId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/create_random_notification.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 || response.statusCode == 201
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Generate notification failed: $e',
+        'data': null,
+      };
+    }
+  }
 }

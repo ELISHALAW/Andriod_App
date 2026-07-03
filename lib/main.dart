@@ -4,6 +4,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/database_test_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/notifications_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,6 +46,19 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _userName = 'Alex';
   bool _isUserLoggedIn = false;
+
+  String get _malaysiaGreeting {
+    final malaysiaTime = DateTime.now().toUtc().add(const Duration(hours: 8));
+    final hour = malaysiaTime.hour;
+
+    if (hour >= 6 && hour < 12) {
+      return 'Good morning';
+    }
+    if (hour >= 12 && hour < 18) {
+      return 'Good Afternoon';
+    }
+    return 'Good evening';
+  }
 
   @override
   void initState() {
@@ -231,15 +245,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAlertsBody() {
-    return const Center(
-      child: Text(
-        'Alerts',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
   Widget _buildMessageCard({
     required String title,
     required String subtitle,
@@ -344,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Good morning, $_userName',
+              '$_malaysiaGreeting, $_userName',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -534,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           _buildMessagesBody(),
-          _buildAlertsBody(),
+          const NotificationsScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
