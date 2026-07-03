@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/database_test_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomeScreen(), // Important
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/database-test': (context) => const DatabaseTestScreen(),
       },
     );
   }
@@ -76,6 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.search_outlined, color: Color(0xFF0F172A)),
             onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.storage, color: Color(0xFF0F172A)),
+            tooltip: 'Test Database',
+            onPressed: () => Navigator.pushNamed(context, '/database-test'),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
