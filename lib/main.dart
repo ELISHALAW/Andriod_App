@@ -44,11 +44,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _userName = 'Alex';
+  bool _isUserLoggedIn = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+    _checkLoggedIn();
   }
 
   Future<void> _loadUserName() async {
@@ -57,6 +59,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (savedName != null && savedName.isNotEmpty) {
       setState(() => _userName = savedName);
     }
+  }
+
+  Future<void> _checkLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+    setState(() => _isUserLoggedIn = userId != null);
   }
 
   void _onNavTap(int idx) {
@@ -360,17 +368,18 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Test Database',
             onPressed: () => Navigator.pushNamed(context, '/database-test'),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: IconButton(
-              onPressed: () => Navigator.pushNamed(context, '/login'),
-              icon: CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFFe2e8f0),
-                child: const Icon(Icons.person, color: Color(0xFF0F172A)),
+          if (!_isUserLoggedIn)
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: IconButton(
+                onPressed: () => Navigator.pushNamed(context, '/login'),
+                icon: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: const Color(0xFFe2e8f0),
+                  child: const Icon(Icons.person, color: Color(0xFF0F172A)),
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: IndexedStack(
