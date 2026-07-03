@@ -31,10 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['success'] == true) {
         final userData = result['data'] as Map<String, dynamic>?;
         final userName = userData?['name'] as String?;
+        final userEmail = userData?['email'] as String?;
 
+        final prefs = await SharedPreferences.getInstance();
         if (userName != null && userName.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userName', userName);
+        }
+        if (userEmail != null && userEmail.isNotEmpty) {
+          await prefs.setString('userEmail', userEmail);
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

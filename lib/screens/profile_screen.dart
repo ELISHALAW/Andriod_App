@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -12,6 +13,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   Map<String, dynamic>? _result;
   String _statusMessage = '';
+  String _userName = 'Alex Johnson';
+  String _userEmail = 'alex.johnson@example.com';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('userName');
+    final savedEmail = prefs.getString('userEmail');
+
+    if (savedName != null && savedName.isNotEmpty) {
+      _userName = savedName;
+    }
+    if (savedEmail != null && savedEmail.isNotEmpty) {
+      _userEmail = savedEmail;
+    }
+    setState(() {});
+  }
 
   Future<void> _testConnection() async {
     setState(() {
@@ -138,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Alex Johnson',
+                  _userName,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -146,10 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  'alex.johnson@example.com',
-                  style: TextStyle(fontSize: 14, color: muted),
-                ),
+                Text(_userEmail, style: TextStyle(fontSize: 14, color: muted)),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
