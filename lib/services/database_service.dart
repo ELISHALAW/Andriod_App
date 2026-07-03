@@ -423,4 +423,132 @@ class DatabaseService {
       };
     }
   }
+
+  /// Fetch messages for a user
+  static Future<Map<String, dynamic>> getMessages({
+    required int userId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/get_messages.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? [],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Fetch messages failed: $e',
+        'data': [],
+      };
+    }
+  }
+
+  /// Create a message for a user
+  static Future<Map<String, dynamic>> createMessage({
+    required int userId,
+    required String sender,
+    required String subject,
+    required String body,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/create_message.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': userId,
+              'sender': sender,
+              'subject': subject,
+              'body': body,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 || response.statusCode == 201
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Create message failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Mark a message as read
+  static Future<Map<String, dynamic>> markMessageRead({
+    required int messageId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/mark_message_read.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': messageId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Mark message failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Delete a message
+  static Future<Map<String, dynamic>> deleteMessage({
+    required int messageId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/delete_message.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': messageId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Delete message failed: $e',
+        'data': null,
+      };
+    }
+  }
 }

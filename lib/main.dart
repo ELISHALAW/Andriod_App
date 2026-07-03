@@ -6,6 +6,7 @@ import 'screens/database_test_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/appointments_screen.dart';
+import 'screens/messages_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -542,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          _buildMessagesBody(),
+          const MessagesScreen(),
           const NotificationsScreen(),
         ],
       ),
