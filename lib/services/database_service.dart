@@ -323,4 +323,104 @@ class DatabaseService {
       };
     }
   }
+
+  /// Fetch appointments for a user
+  static Future<Map<String, dynamic>> getAppointments({
+    required int userId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/get_appointments.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? [],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Fetch appointments failed: $e',
+        'data': [],
+      };
+    }
+  }
+
+  /// Create an appointment and matching notification
+  static Future<Map<String, dynamic>> createAppointment({
+    required int userId,
+    required String title,
+    required String appointmentDate,
+    required String appointmentTime,
+    required String notes,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/create_appointment.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': userId,
+              'title': title,
+              'appointment_date': appointmentDate,
+              'appointment_time': appointmentTime,
+              'notes': notes,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 || response.statusCode == 201
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Create appointment failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Cancel an appointment
+  static Future<Map<String, dynamic>> cancelAppointment({
+    required int appointmentId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/cancel_appointment.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': appointmentId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Cancel appointment failed: $e',
+        'data': null,
+      };
+    }
+  }
 }

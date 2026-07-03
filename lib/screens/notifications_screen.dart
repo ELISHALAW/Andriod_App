@@ -11,7 +11,6 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isLoading = false;
-  bool _isGenerating = false;
   String _statusMessage = '';
   int? _userId;
   List<Map<String, dynamic>> _notifications = [];
@@ -41,6 +40,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _statusMessage = 'Loading notifications...';
     });
 
+    await DatabaseService.generateRandomNotification(userId: userId);
     final result = await DatabaseService.getNotifications(userId: userId);
     final data = result['data'];
 
@@ -86,33 +86,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     }
 
-    _showSnackBar(result);
-  }
-
-  Future<void> _generateRandomAlert() async {
-    final userId = _userId;
-    if (userId == null) {
-      _showSnackBar({
-        'success': false,
-        'message': 'Please login to generate an alert.',
-      });
-      return;
-    }
-
-    setState(() => _isGenerating = true);
-
-    final result = await DatabaseService.generateRandomNotification(
-      userId: userId,
-    );
-    final data = result['data'];
-
-    if (result['success'] == true && data is Map) {
-      setState(() {
-        _notifications.insert(0, Map<String, dynamic>.from(data));
-      });
-    }
-
-    setState(() => _isGenerating = false);
     _showSnackBar(result);
   }
 
@@ -171,33 +144,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 18),
             _buildSummaryCard(unreadCount),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _userId == null || _isGenerating
-                    ? null
-                    : _generateRandomAlert,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F172A),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                icon: _isGenerating
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.shuffle, color: Colors.white),
-                label: const Text(
-                  'Generate Random Alert',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
             const SizedBox(height: 18),
             if (_isLoading)
               const Center(
