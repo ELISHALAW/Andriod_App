@@ -7,6 +7,7 @@ import 'screens/profile_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/appointments_screen.dart';
 import 'screens/messages_screen.dart';
+import 'screens/documents_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         '/database-test': (context) => const DatabaseTestScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/appointments': (context) => const AppointmentsScreen(),
+        '/documents': (context) => const DocumentsScreen(),
       },
     );
   }
@@ -452,10 +454,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 12),
                         _buildPromoCard(
-                          title: 'Explore tutorials',
-                          subtitle: 'Learn new skills',
+                          title: 'Documents',
+                          subtitle: 'View files and records',
                           color: const Color(0xFF06B6D4),
-                          icon: Icons.school_outlined,
+                          icon: Icons.folder_copy_outlined,
+                          onTap: () => Navigator.pushNamed(context, '/documents'),
                         ),
                         const SizedBox(width: 12),
                         _buildPromoCard(

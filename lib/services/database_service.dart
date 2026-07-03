@@ -551,4 +551,104 @@ class DatabaseService {
       };
     }
   }
+
+  /// Fetch documents for a user
+  static Future<Map<String, dynamic>> getDocuments({
+    required int userId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/get_documents.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? [],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Fetch documents failed: $e',
+        'data': [],
+      };
+    }
+  }
+
+  /// Create a document record
+  static Future<Map<String, dynamic>> createDocument({
+    required int userId,
+    required String title,
+    required String documentType,
+    required String fileName,
+    required String notes,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/create_document.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': userId,
+              'title': title,
+              'document_type': documentType,
+              'file_name': fileName,
+              'notes': notes,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 || response.statusCode == 201
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Create document failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Delete a document record
+  static Future<Map<String, dynamic>> deleteDocument({
+    required int documentId,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/delete_document.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id': documentId}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Delete document failed: $e',
+        'data': null,
+      };
+    }
+  }
 }
