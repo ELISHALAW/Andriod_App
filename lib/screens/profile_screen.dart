@@ -11,10 +11,15 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
+  bool _isSaving = false;
+  bool _isDeleting = false;
   Map<String, dynamic>? _result;
   String _statusMessage = '';
+  int? _userId;
   String _userName = 'Alex Johnson';
   String _userEmail = 'alex.johnson@example.com';
+  String _userPhone = '';
+  String _userAddress = '';
 
   @override
   void initState() {
@@ -24,6 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getInt('userId');
     final savedName = prefs.getString('userName');
     final savedEmail = prefs.getString('userEmail');
 
@@ -33,7 +39,282 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (savedEmail != null && savedEmail.isNotEmpty) {
       _userEmail = savedEmail;
     }
-    setState(() {});
+
+    if (_userId != null) {
+      await _fetchProfile(_userId!);
+    } else {
+      setState(() {});
+    }
+  }
+
+  Future<void> _fetchProfile(int userId) async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage = 'Loading profile...';
+    });
+
+    final result = await DatabaseService.getProfile(userId: userId);
+    if (result['success'] == true && result['data'] != null) {
+      final data = result['data'] as Map<String, dynamic>;
+      _userName = data['name']?.toString() ?? _userName;
+      _userEmail = data['email']?.toString() ?? _userEmail;
+      _userPhone = data['phone_number']?.toString() ?? '';
+      _userAddress = data['address']?.toString() ?? '';
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userName', _userName);
+      await prefs.setString('userEmail', _userEmail);
+    }
+
+    setState(() {
+      _result = result;
+      _isLoading = false;
+      _statusMessage = result['message'] ?? '';
+    });
+  }
+
+  Future<void> _openEditProfileDialog() async {
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login first to edit your profile.'),
+        ),
+      );
+      return;
+    }
+
+    final nameCtrl = TextEditingController(text: _userName);
+    final emailCtrl = TextEditingController(text: _userEmail);
+    final phoneCtrl = TextEditingController(text: _userPhone);
+    final addressCtrl = TextEditingController(text: _userAddress);
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Profile'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter your name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter your email';
+                      }
+                      final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                      if (!emailRegex.hasMatch(value.trim())) {
+                        return 'Enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: phoneCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone number',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter your phone';
+                      }
+                      final normalized = value.replaceAll(
+                        RegExp(r'[\s\-]'),
+                        '',
+                      );
+                      final malaysianPhoneRegex = RegExp(
+                        r'^(?:\+601|01)[0-9]{8,9}$',
+                      );
+                      if (!malaysianPhoneRegex.hasMatch(normalized)) {
+                        return 'Enter a valid Malaysian phone number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: addressCtrl,
+                    decoration: const InputDecoration(labelText: 'Address'),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter your address';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.of(context).pop();
+                  await _saveProfile(
+                    name: nameCtrl.text.trim(),
+                    email: emailCtrl.text.trim(),
+                    phone: phoneCtrl.text.trim(),
+                    address: addressCtrl.text.trim(),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _saveProfile({
+    required String name,
+    required String email,
+    required String phone,
+    required String address,
+  }) async {
+    if (_userId == null) return;
+
+    setState(() {
+      _isSaving = true;
+      _statusMessage = 'Updating profile...';
+    });
+
+    final result = await DatabaseService.updateProfile(
+      userId: _userId!,
+      name: name,
+      email: email,
+      phone: phone,
+      address: address,
+    );
+
+    if (result['success'] == true) {
+      _userName = name;
+      _userEmail = email;
+      _userPhone = phone;
+      _userAddress = address;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userName', _userName);
+      await prefs.setString('userEmail', _userEmail);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Profile updated successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Profile update failed.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() {
+      _result = result;
+      _isSaving = false;
+      _statusMessage = result['message'] ?? '';
+    });
+  }
+
+  Future<void> _handleLogout() async {
+    await _clearSession();
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    if (_userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No user is currently signed in.')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete account'),
+          content: const Text(
+            'This will permanently delete your account. Continue?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isDeleting = true;
+      _statusMessage = 'Deleting account...';
+    });
+
+    final result = await DatabaseService.deleteProfile(userId: _userId!);
+    if (result['success'] == true) {
+      await _clearSession();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Account deleted.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result['message'] ?? 'Failed to delete account.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+
+    setState(() {
+      _isDeleting = false;
+      _statusMessage = result['message'] ?? '';
+    });
+  }
+
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    await prefs.remove('userName');
+    await prefs.remove('userEmail');
   }
 
   Future<void> _testConnection() async {
@@ -92,6 +373,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 24),
+            _buildActionButtons(),
+            const SizedBox(height: 24),
             _buildConnectionCard(textColor),
             const SizedBox(height: 16),
             SizedBox(
@@ -126,6 +409,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton(
+          onPressed: _isSaving ? null : _openEditProfileDialog,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1D4ED8),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: _isSaving
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Edit Profile'),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: _isDeleting ? null : _handleLogout,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0F172A),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: const Text('Logout'),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: _isDeleting ? null : _handleDeleteAccount,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: _isDeleting
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.red,
+                  ),
+                )
+              : const Text('Delete Account'),
+        ),
+      ],
     );
   }
 

@@ -30,10 +30,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (result['success'] == true) {
         final userData = result['data'] as Map<String, dynamic>?;
+        final userId = userData?['id'] as int?;
         final userName = userData?['name'] as String?;
         final userEmail = userData?['email'] as String?;
 
         final prefs = await SharedPreferences.getInstance();
+        if (userId != null) {
+          await prefs.setInt('userId', userId);
+        }
         if (userName != null && userName.isNotEmpty) {
           await prefs.setString('userName', userName);
         }
