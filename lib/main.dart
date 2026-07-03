@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/database_test_screen.dart';
@@ -42,6 +43,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  String _userName = 'Alex';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('userName');
+    if (savedName != null && savedName.isNotEmpty) {
+      setState(() => _userName = savedName);
+    }
+  }
 
   void _onNavTap(int idx) {
     if (idx == 3) {
@@ -318,9 +334,9 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: false,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
-              'Good morning, Alex',
+              'Good morning, $_userName',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

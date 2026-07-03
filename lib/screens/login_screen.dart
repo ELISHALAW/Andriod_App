@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../main.dart';   // Adjust path if needed
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/database_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,20 +21,38 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  void _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login successful!'),
-          backgroundColor: Colors.green,
-        ),
+      final result = await DatabaseService.loginUser(
+        email: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
       );
 
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/', 
-        (route) => false,
-      );
+      if (result['success'] == true) {
+        final userData = result['data'] as Map<String, dynamic>?;
+        final userName = userData?['name'] as String?;
+
+        if (userName != null && userName.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userName', userName);
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Login successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Login failed.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

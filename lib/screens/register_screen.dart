@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../services/database_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,7 +17,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -24,24 +27,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
+    _addressCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  void _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully!'),
-          backgroundColor: Colors.green,
-        ),
+      final result = await DatabaseService.registerUser(
+        name: _nameCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+        password: _passwordCtrl.text,
       );
 
-      // Go back to login or directly to home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Account created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        final errorText =
+            result['message'] ?? 'Registration failed. Please try again.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorText), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -74,13 +91,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Confirm password is required';
+    if (value != _passwordCtrl.text) return 'Passwords do not match';
+    return null;
+  }
+
+  String? _validateAddress(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Address is required';
+    if (value.trim().length < 5) return 'Enter a valid address';
+    return null;
+  }
+
   String? _validatePhone(String? value) {
     if (value == null || value.trim().isEmpty)
       return 'Phone number is required';
-    final trimmed = value.trim();
-    final phoneRegex = RegExp(r'^\+?[0-9]{7,15}\$');
-    if (!phoneRegex.hasMatch(trimmed)) {
-      return 'Enter a valid phone number';
+
+    final normalized = value.replaceAll(RegExp(r'[\s\-]'), '');
+    final malaysianPhoneRegex = RegExp(r'^(?:\+601|01)[0-9]{8,9}$');
+
+    if (!malaysianPhoneRegex.hasMatch(normalized)) {
+      return 'Enter a valid Malaysian phone number';
     }
     return null;
   }
@@ -98,13 +129,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey, // Binds this widget group to our validation key
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 TextFormField(
                   controller: _nameCtrl,
@@ -131,10 +162,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Phone number',
-                    hintText: '+1234567890',
+                    hintText: '01133903509 or +601133903509',
                     border: OutlineInputBorder(),
                   ),
                   validator: _validatePhone,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _addressCtrl,
+                  keyboardType: TextInputType.streetAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Address',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: _validateAddress,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -145,6 +186,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: OutlineInputBorder(),
                   ),
                   validator: _validatePassword,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPasswordCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm password',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: _validateConfirmPassword,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(

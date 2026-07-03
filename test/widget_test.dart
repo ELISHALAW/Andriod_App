@@ -52,7 +52,9 @@ void main() {
       find.byType(TextFormField).at(1),
       'seongchunlaw050gmail.com',
     );
-    await tester.enterText(find.byType(TextFormField).at(2), '123456');
+    await tester.enterText(find.byType(TextFormField).at(2), '+1234567890');
+    await tester.enterText(find.byType(TextFormField).at(3), '123 Main St');
+    await tester.enterText(find.byType(TextFormField).at(4), '123456');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Create account'));
     await tester.pump();
 
@@ -69,7 +71,9 @@ void main() {
       find.byType(TextFormField).at(1),
       'user@example.com',
     );
-    await tester.enterText(find.byType(TextFormField).at(2), '123');
+    await tester.enterText(find.byType(TextFormField).at(2), '+1234567890');
+    await tester.enterText(find.byType(TextFormField).at(3), '123 Main St');
+    await tester.enterText(find.byType(TextFormField).at(4), '123');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Create account'));
     await tester.pump();
 
