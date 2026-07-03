@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 
-
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -16,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // Controllers capture text input and store them in memory
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
   @override
@@ -23,6 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Crucial step: Freeing memory controllers when the user leaves the screen
     _nameCtrl.dispose();
     _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -73,6 +74,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty)
+      return 'Phone number is required';
+    final trimmed = value.trim();
+    final phoneRegex = RegExp(r'^\+?[0-9]{7,15}\$');
+    if (!phoneRegex.hasMatch(trimmed)) {
+      return 'Enter a valid phone number';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,6 +124,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: OutlineInputBorder(),
                   ),
                   validator: _validateEmail,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone number',
+                    hintText: '+1234567890',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: _validatePhone,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

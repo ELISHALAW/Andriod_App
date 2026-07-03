@@ -52,10 +52,157 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMessagesBody() {
-    return const Center(
-      child: Text(
-        'Messages',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+    final messages = [
+      {
+        'title': 'Project kickoff',
+        'subtitle': 'Let’s meet at 10:00 to review requirements.',
+        'time': 'Now',
+        'unread': true,
+      },
+      {
+        'title': 'Design review',
+        'subtitle': 'The new wireframes are ready for your feedback.',
+        'time': '1h ago',
+        'unread': true,
+      },
+      {
+        'title': 'Sales update',
+        'subtitle': 'Monthly report has been uploaded to the dashboard.',
+        'time': 'Yesterday',
+        'unread': false,
+      },
+      {
+        'title': 'Support team',
+        'subtitle': 'We have scheduled a follow-up call tomorrow.',
+        'time': '2d ago',
+        'unread': false,
+      },
+      {
+        'title': 'Anna Morris',
+        'subtitle': 'I reviewed the latest draft and it looks great.',
+        'time': '3d ago',
+        'unread': false,
+      },
+    ];
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Messages',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Catch up with your latest conversations.',
+              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: const [
+                  Icon(Icons.search, color: Color(0xFF94A3B8)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search messages',
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.filter_list, color: Color(0xFF94A3B8)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildChip('All', true),
+                  const SizedBox(width: 10),
+                  _buildChip('Unread', false),
+                  const SizedBox(width: 10),
+                  _buildChip('Mentions', false),
+                  const SizedBox(width: 10),
+                  _buildChip('Archived', false),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Recent',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 14),
+            ...messages.map((message) {
+              return Column(
+                children: [
+                  _buildMessageCard(
+                    title: message['title'] as String,
+                    subtitle: message['subtitle'] as String,
+                    time: message['time'] as String,
+                    unread: message['unread'] as bool,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              );
+            }).toList(),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Archive all'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F172A),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('New message'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 80),
+          ],
+        ),
       ),
     );
   }
@@ -65,6 +212,95 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Text(
         'Alerts',
         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildMessageCard({
+    required String title,
+    required String subtitle,
+    required String time,
+    required bool unread,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundColor: unread
+              ? const Color(0xFF0F172A)
+              : const Color(0xFFE2E8F0),
+          child: Icon(
+            Icons.chat_bubble_outline,
+            color: unread ? Colors.white : const Color(0xFF64748B),
+          ),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: unread ? const Color(0xFF0F172A) : const Color(0xFF0F172A),
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: Color(0xFF64748B)),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              time,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+            ),
+            if (unread)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'New',
+                  style: TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ),
+          ],
+        ),
+        onTap: () {},
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? Colors.white : const Color(0xFF0F172A),
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
