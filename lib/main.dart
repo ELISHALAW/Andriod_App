@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/database_test_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/database-test': (context) => const DatabaseTestScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
@@ -42,7 +44,29 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   void _onNavTap(int idx) {
-    setState(() => _selectedIndex = idx);
+    if (idx == 3) {
+      Navigator.pushNamed(context, '/profile');
+    } else {
+      setState(() => _selectedIndex = idx);
+    }
+  }
+
+  Widget _buildMessagesBody() {
+    return const Center(
+      child: Text(
+        'Messages',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildAlertsBody() {
+    return const Center(
+      child: Text(
+        'Alerts',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+    );
   }
 
   @override
@@ -97,153 +121,160 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Search bar
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.search, color: Color(0xFF94A3B8)),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Search',
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.filter_list, color: Color(0xFF94A3B8)),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Promo cards
-              SizedBox(
-                height: 150,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _buildPromoCard(
-                      title: 'Start a project',
-                      subtitle: 'Create something new today',
-                      color: const Color(0xFF6366F1),
-                      icon: Icons.lightbulb_outline,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildPromoCard(
-                      title: 'Explore tutorials',
-                      subtitle: 'Learn new skills',
-                      color: const Color(0xFF06B6D4),
-                      icon: Icons.school_outlined,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildPromoCard(
-                      title: 'Team space',
-                      subtitle: 'Collaborate with others',
-                      color: const Color(0xFF10B981),
-                      icon: Icons.group_outlined,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Categories
-              const Text(
-                'Categories',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              GridView.count(
-                crossAxisCount: 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 0.85,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildCategory(Icons.code, 'Dev'),
-                  _buildCategory(Icons.design_services, 'Design'),
-                  _buildCategory(Icons.analytics, 'Data'),
-                  _buildCategory(Icons.business_center, 'Biz'),
-                  _buildCategory(Icons.sports_esports, 'Games'),
-                  _buildCategory(Icons.health_and_safety, 'Health'),
-                  _buildCategory(Icons.public, 'Travel'),
-                  _buildCategory(Icons.lightbulb, 'Ideas'),
+                  // Search bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.search, color: Color(0xFF94A3B8)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Search',
+                              border: InputBorder.none,
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.filter_list, color: Color(0xFF94A3B8)),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Promo cards
+                  SizedBox(
+                    height: 150,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _buildPromoCard(
+                          title: 'Start a project',
+                          subtitle: 'Create something new today',
+                          color: const Color(0xFF6366F1),
+                          icon: Icons.lightbulb_outline,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildPromoCard(
+                          title: 'Explore tutorials',
+                          subtitle: 'Learn new skills',
+                          color: const Color(0xFF06B6D4),
+                          icon: Icons.school_outlined,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildPromoCard(
+                          title: 'Team space',
+                          subtitle: 'Collaborate with others',
+                          color: const Color(0xFF10B981),
+                          icon: Icons.group_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Categories
+                  const Text(
+                    'Categories',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  GridView.count(
+                    crossAxisCount: 4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 0.85,
+                    children: [
+                      _buildCategory(Icons.code, 'Dev'),
+                      _buildCategory(Icons.design_services, 'Design'),
+                      _buildCategory(Icons.analytics, 'Data'),
+                      _buildCategory(Icons.business_center, 'Biz'),
+                      _buildCategory(Icons.sports_esports, 'Games'),
+                      _buildCategory(Icons.health_and_safety, 'Health'),
+                      _buildCategory(Icons.public, 'Travel'),
+                      _buildCategory(Icons.lightbulb, 'Ideas'),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Recommended
+                  const Text(
+                    'Recommended',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: List.generate(3, (i) {
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.play_arrow,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          title: Text(
+                            'Recommended item ${i + 1}',
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Quick summary of this item.',
+                            style: TextStyle(color: muted),
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: 80),
                 ],
               ),
-
-              const SizedBox(height: 18),
-
-              // Recommended
-              const Text(
-                'Recommended',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Column(
-                children: List.generate(3, (i) {
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      title: Text(
-                        'Recommended item ${i + 1}',
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Quick summary of this item.',
-                        style: TextStyle(color: muted),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                    ),
-                  );
-                }),
-              ),
-
-              const SizedBox(height: 80),
-            ],
+            ),
           ),
-        ),
+          _buildMessagesBody(),
+          _buildAlertsBody(),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
