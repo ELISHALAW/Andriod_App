@@ -16,10 +16,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _result;
   String _statusMessage = '';
   int? _userId;
-  String _userName = 'Alex Johnson';
-  String _userEmail = 'alex.johnson@example.com';
+  String _userName = 'User';
+  String _userEmail = '';
   String _userPhone = '';
   String _userAddress = '';
+  int _appointmentCount = 0;
+  int _messageCount = 0;
+  int _documentCount = 0;
 
   @override
   void initState() {
@@ -50,7 +53,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchProfile(int userId) async {
     setState(() {
       _isLoading = true;
-      _statusMessage = 'Loading profile...';
     });
 
     final result = await DatabaseService.getProfile(userId: userId);
@@ -67,19 +69,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     setState(() {
-      _result = result;
       _isLoading = false;
-      _statusMessage = result['message'] ?? '';
     });
   }
 
   Future<void> _openEditProfileDialog() async {
     if (_userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login first to edit your profile.'),
-        ),
-      );
+      _showErrorSnackBar('Please login first to edit your profile.');
       return;
     }
 
@@ -198,7 +194,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() {
       _isSaving = true;
-      _statusMessage = 'Updating profile...';
     });
 
     final result = await DatabaseService.updateProfile(
@@ -219,38 +214,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await prefs.setString('userName', _userName);
       await prefs.setString('userEmail', _userEmail);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Profile updated successfully.'),
-          backgroundColor: Colors.green,
-        ),
+      _showSuccessSnackBar(
+        result['message'] ?? 'Profile updated successfully.',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Profile update failed.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar(result['message'] ?? 'Profile update failed.');
     }
 
     setState(() {
-      _result = result;
       _isSaving = false;
-      _statusMessage = result['message'] ?? '';
     });
   }
 
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     await _clearSession();
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
   }
 
   Future<void> _handleDeleteAccount() async {
     if (_userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No user is currently signed in.')),
-      );
+      _showErrorSnackBar('No user is currently signed in.');
       return;
     }
 
@@ -258,9 +283,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete account'),
+          title: const Text('Delete Account'),
           content: const Text(
-            'This will permanently delete your account. Continue?',
+            'This will permanently delete your account and all associated data. This action cannot be undone. Continue?',
           ),
           actions: [
             TextButton(
@@ -281,32 +306,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() {
       _isDeleting = true;
-      _statusMessage = 'Deleting account...';
     });
 
     final result = await DatabaseService.deleteProfile(userId: _userId!);
     if (result['success'] == true) {
       await _clearSession();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Account deleted.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      _showSuccessSnackBar(result['message'] ?? 'Account deleted.');
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      }
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result['message'] ?? 'Failed to delete account.'),
-        backgroundColor: Colors.red,
-      ),
-    );
+    _showErrorSnackBar(result['message'] ?? 'Failed to delete account.');
 
     setState(() {
       _isDeleting = false;
-      _statusMessage = result['message'] ?? '';
     });
   }
 
@@ -334,81 +349,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = const Color(0xFF0F172A);
-    final muted = const Color(0xFF64748B);
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('My Profile'),
         backgroundColor: Colors.white,
-        foregroundColor: textColor,
+        foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeaderCard(textColor, muted),
-            const SizedBox(height: 24),
-            _buildStatsSection(),
-            const SizedBox(height: 24),
-            _buildSectionCard(
-              title: 'Account',
-              items: [
-                _ProfileItemData(Icons.person_outline, 'Account details'),
-                _ProfileItemData(Icons.lock_outline, 'Security'),
-                _ProfileItemData(Icons.notifications_none, 'Notifications'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildSectionCard(
-              title: 'Preferences',
-              items: [
-                _ProfileItemData(Icons.palette_outlined, 'Appearance'),
-                _ProfileItemData(Icons.language_outlined, 'Language'),
-                _ProfileItemData(Icons.help_outline, 'Help & support'),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildActionButtons(),
-            const SizedBox(height: 24),
-            _buildConnectionCard(textColor),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _testConnection,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F172A),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Test MySQL Connection'),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeaderCard(),
+                  const SizedBox(height: 24),
+                  _buildStatsSection(),
+                  const SizedBox(height: 24),
+                  _buildAccountSection(),
+                  const SizedBox(height: 24),
+                  _buildActionButtons(),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
-            if (_statusMessage.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              _buildStatusCard(),
-            ],
-            if (_result != null && _result!['data'] != null) ...[
-              const SizedBox(height: 20),
-              _buildResultCard(_result!),
-            ],
-            const SizedBox(height: 40),
-          ],
-        ),
+    );
+  }
+
+  Widget _buildAccountSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Account Information',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildInfoRow('Name', _userName, Icons.person_outline),
+          const SizedBox(height: 16),
+          _buildInfoRow('Email', _userEmail, Icons.email_outlined),
+          if (_userPhone.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildInfoRow('Phone', _userPhone, Icons.phone_outlined),
+          ],
+          if (_userAddress.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildInfoRow('Address', _userAddress, Icons.location_on_outlined),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: const Color(0xFF64748B)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value.isNotEmpty ? value : 'Not provided',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -416,16 +460,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevatedButton(
+        ElevatedButton.icon(
           onPressed: _isSaving ? null : _openEditProfileDialog,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1D4ED8),
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: _isSaving
+          icon: const Icon(Icons.edit),
+          label: _isSaving
               ? const SizedBox(
-                  height: 20,
-                  width: 20,
+                  height: 18,
+                  width: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
@@ -434,29 +482,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : const Text('Edit Profile'),
         ),
         const SizedBox(height: 12),
-        ElevatedButton(
+        ElevatedButton.icon(
           onPressed: _isDeleting ? null : _handleLogout,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0F172A),
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: const Text('Logout'),
+          icon: const Icon(Icons.logout),
+          label: const Text('Logout'),
         ),
         const SizedBox(height: 12),
-        OutlinedButton(
+        OutlinedButton.icon(
           onPressed: _isDeleting ? null : _handleDeleteAccount,
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.red,
             side: const BorderSide(color: Colors.red),
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: _isDeleting
+          icon: const Icon(Icons.delete_outline),
+          label: _isDeleting
               ? const SizedBox(
-                  height: 20,
-                  width: 20,
+                  height: 18,
+                  width: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.red,
+                    valueColor: AlwaysStoppedAnimation(Colors.red),
                   ),
                 )
               : const Text('Delete Account'),
@@ -465,16 +521,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeaderCard(Color textColor, Color muted) {
+  Widget _buildHeaderCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade400, Colors.blue.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.blue.withOpacity(0.3),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -483,13 +543,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           Container(
-            width: 84,
-            height: 84,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(22),
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.person, color: Color(0xFF0F172A), size: 42),
+            child: const Icon(Icons.person, color: Color(0xFF1D4ED8), size: 40),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -498,30 +558,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   _userName,
-                  style: TextStyle(
-                    fontSize: 22,
+                  style: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: textColor,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(_userEmail, style: TextStyle(fontSize: 14, color: muted)),
+                const SizedBox(height: 4),
+                Text(
+                  _userEmail,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                    horizontal: 10,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'Premium member',
+                    'Active',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1D4ED8),
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -536,36 +604,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatsSection() {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('12', 'Projects')),
+        Expanded(
+          child: _buildStatCard(
+            _appointmentCount.toString(),
+            'Appointments',
+            Colors.blue,
+            Icons.calendar_today,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('24', 'Followers')),
+        Expanded(
+          child: _buildStatCard(
+            _messageCount.toString(),
+            'Messages',
+            Colors.green,
+            Icons.message,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('4.9', 'Rating')),
+        Expanded(
+          child: _buildStatCard(
+            _documentCount.toString(),
+            'Documents',
+            Colors.orange,
+            Icons.description,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String value, String label) {
+  Widget _buildStatCard(
+    String value,
+    String label,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(color: Color(0xFF64748B))),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
