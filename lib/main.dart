@@ -6,6 +6,7 @@ import 'screens/database_test_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/appointments_screen.dart';
+import 'screens/calendar_screen.dart';
 import 'screens/messages_screen.dart';
 import 'screens/documents_screen.dart';
 
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/database-test': (context) => const DatabaseTestScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/appointments': (context) => const AppointmentsScreen(),
+        '/calendar': (context) => const CalendarScreen(),
         '/documents': (context) => const DocumentsScreen(),
       },
     );
@@ -443,21 +445,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 18),
 
                   // Promo cards
-                  SizedBox(
-                    height: 150,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _buildPromoCard(
-                          title: 'Book appointment',
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPromoCard(
+                          title: 'Book Appointment',
                           subtitle: 'Schedule your next visit',
                           color: const Color(0xFF6366F1),
                           icon: Icons.calendar_month_outlined,
                           onTap: () =>
-                              Navigator.pushNamed(context, '/appointments'),
+                              Navigator.pushNamed(context, '/calendar'),
                         ),
-                        const SizedBox(width: 12),
-                        _buildPromoCard(
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildPromoCard(
                           title: 'Documents',
                           subtitle: 'View files and records',
                           color: const Color(0xFF06B6D4),
@@ -465,18 +467,61 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () =>
                               Navigator.pushNamed(context, '/documents'),
                         ),
-                        const SizedBox(width: 12),
-                        _buildPromoCard(
-                          title: 'Team space',
-                          subtitle: 'Collaborate with others',
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildPromoCard(
+                          title: 'My Appointments',
+                          subtitle: 'View your bookings',
                           color: const Color(0xFF10B981),
-                          icon: Icons.group_outlined,
+                          icon: Icons.event_note_outlined,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/appointments'),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 22),
+
+                  // Today's Summary
+                  const Text(
+                    'Today\'s Summary',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          label: 'Upcoming',
+                          value: '2',
+                          icon: Icons.upcoming_outlined,
+                          color: const Color(0xFF6366F1),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildStatCard(
+                          label: 'This Month',
+                          value: '8',
+                          icon: Icons.calendar_today_outlined,
+                          color: const Color(0xFF06B6D4),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildStatCard(
+                          label: 'Cancelled',
+                          value: '1',
+                          icon: Icons.cancel_outlined,
+                          color: const Color(0xFFEF4444),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 22),
 
                   // Categories
                   const Text(
@@ -594,46 +639,93 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Container(
-        width: 260,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color.withOpacity(0.95), color.withOpacity(0.8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color, color.withOpacity(0.75)],
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.18),
-              blurRadius: 8,
-              offset: const Offset(0, 6),
+              color: color.withOpacity(0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: Colors.white, size: 30),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
+            Icon(icon, color: Colors.white, size: 26),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+          ),
+        ],
       ),
     );
   }
