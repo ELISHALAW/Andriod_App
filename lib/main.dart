@@ -20,15 +20,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Blank App',
+      title: 'Client Booking App',
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
-      initialRoute: '/', // Important
+      initialRoute: '/',
       routes: {
-        '/': (context) => const HomeScreen(), // Important
+        '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/database-test': (context) => const DatabaseTestScreen(),
@@ -354,7 +354,9 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '$_malaysiaGreeting, $_userName',
+              _isUserLoggedIn
+                  ? '$_malaysiaGreeting, $_userName'
+                  : 'Welcome to Client Booking App',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -363,7 +365,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(height: 2),
             Text(
-              'Here’s what’s new for you',
+              _isUserLoggedIn
+                  ? 'Here\'s what\'s new for you'
+                  : 'Sign in to book appointments and access your documents',
               style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
             ),
           ],
@@ -458,7 +462,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           subtitle: 'View files and records',
                           color: const Color(0xFF06B6D4),
                           icon: Icons.folder_copy_outlined,
-                          onTap: () => Navigator.pushNamed(context, '/documents'),
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/documents'),
                         ),
                         const SizedBox(width: 12),
                         _buildPromoCard(
