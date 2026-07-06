@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/database_service.dart';
 
 class DocumentsScreen extends StatefulWidget {
@@ -49,9 +50,9 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       _statusMessage = result['message'] ?? '';
       _documents = data is List
           ? data
-              .whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList()
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
           : [];
     });
   }
@@ -64,71 +65,287 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
 
     final titleCtrl = TextEditingController();
-    final fileNameCtrl = TextEditingController();
     final notesCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
     String documentType = 'Receipt';
+    String? pickedFileName;
+    int? pickedFileSize;
+    bool isPicking = false;
+    const int maxBytes = 10 * 1024 * 1024; // 10 MB
 
     await showDialog<void>(
       context: context,
-      builder: (context) {
+      barrierDismissible: false,
+      builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (ctx, setS) {
             return AlertDialog(
-              title: const Text('Add document'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: const [
+                  Icon(Icons.upload_file_outlined, color: Color(0xFF1D4ED8)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Add Document',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Form(
                   key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextFormField(
                         controller: titleCtrl,
-                        decoration: const InputDecoration(labelText: 'Title'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Enter document title';
-                          }
-                          return null;
-                        },
+                        decoration: InputDecoration(
+                          labelText: 'Title',
+                          prefixIcon: const Icon(
+                            Icons.title,
+                            color: Color(0xFF1D4ED8),
+                            size: 20,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Enter a title'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: documentType,
-                        decoration: const InputDecoration(labelText: 'Type'),
+                        decoration: InputDecoration(
+                          labelText: 'Document Type',
+                          prefixIcon: const Icon(
+                            Icons.category_outlined,
+                            color: Color(0xFF1D4ED8),
+                            size: 20,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'Receipt', child: Text('Receipt')),
-                          DropdownMenuItem(value: 'Invoice', child: Text('Invoice')),
-                          DropdownMenuItem(value: 'Report', child: Text('Report')),
+                          DropdownMenuItem(
+                            value: 'Receipt',
+                            child: Text('Receipt'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Invoice',
+                            child: Text('Invoice'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Report',
+                            child: Text('Report'),
+                          ),
                           DropdownMenuItem(value: 'Form', child: Text('Form')),
+                          DropdownMenuItem(
+                            value: 'Other',
+                            child: Text('Other'),
+                          ),
                         ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setDialogState(() => documentType = value);
-                          }
+                        onChanged: (v) {
+                          if (v != null) setS(() => documentType = v);
                         },
                       ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: fileNameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'File name',
-                          hintText: 'example.pdf',
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Attach File',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Enter file name';
-                          }
-                          return null;
-                        },
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: isPicking
+                            ? null
+                            : () async {
+                                setS(() => isPicking = true);
+                                try {
+                                  final result = await FilePicker.platform
+                                      .pickFiles(
+                                        type: FileType.custom,
+                                        allowedExtensions: [
+                                          'pdf',
+                                          'doc',
+                                          'docx',
+                                          'xls',
+                                          'xlsx',
+                                          'png',
+                                          'jpg',
+                                          'jpeg',
+                                        ],
+                                        allowMultiple: false,
+                                        withData: false,
+                                      );
+                                  if (result != null &&
+                                      result.files.isNotEmpty) {
+                                    final f = result.files.single;
+                                    if (f.size > maxBytes) {
+                                      setS(() {
+                                        pickedFileName = null;
+                                        pickedFileSize = null;
+                                      });
+                                      if (ctx.mounted) {
+                                        ScaffoldMessenger.of(ctx).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'File exceeds 10 MB limit.',
+                                            ),
+                                            backgroundColor: Color(0xFFDC2626),
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      setS(() {
+                                        pickedFileName = f.name;
+                                        pickedFileSize = f.size;
+                                        if (titleCtrl.text.trim().isEmpty) {
+                                          titleCtrl.text = f.name.replaceAll(
+                                            RegExp(r'\.[^.]+$'),
+                                            '',
+                                          );
+                                        }
+                                      });
+                                    }
+                                  }
+                                } catch (e) {
+                                  debugPrint('FilePicker error: $e');
+                                } finally {
+                                  setS(() => isPicking = false);
+                                }
+                              },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: pickedFileName != null
+                                ? const Color(0xFFEFF6FF)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: pickedFileName != null
+                                  ? const Color(0xFF1D4ED8)
+                                  : const Color(0xFFCBD5E1),
+                              width: pickedFileName != null ? 1.5 : 1,
+                            ),
+                          ),
+                          child: isPicking
+                              ? const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Selecting...',
+                                      style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : pickedFileName != null
+                              ? Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: Color(0xFF1D4ED8),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            pickedFileName!,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (pickedFileSize != null)
+                                            Text(
+                                              _formatFileSize(pickedFileSize!),
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      icon: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                      onPressed: () => setS(() {
+                                        pickedFileName = null;
+                                        pickedFileSize = null;
+                                      }),
+                                    ),
+                                  ],
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.upload_file_outlined,
+                                      color: Color(0xFF94A3B8),
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Tap to select file',
+                                      style: TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'PDF, DOC, DOCX, XLS, PNG, JPG  ·  Max 10 MB',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF94A3B8),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: notesCtrl,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Notes',
-                          hintText: 'Optional',
+                        decoration: InputDecoration(
+                          labelText: 'Notes (optional)',
+                          alignLabelWithHint: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ],
@@ -137,21 +354,36 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => Navigator.of(ctx).pop(),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1D4ED8),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: () async {
-                    if (formKey.currentState?.validate() ?? false) {
-                      Navigator.of(context).pop();
-                      await _createDocument(
-                        userId: userId,
-                        title: titleCtrl.text.trim(),
-                        documentType: documentType,
-                        fileName: fileNameCtrl.text.trim(),
-                        notes: notesCtrl.text.trim(),
+                    if (!(formKey.currentState?.validate() ?? false)) return;
+                    if (pickedFileName == null) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a file.'),
+                          backgroundColor: Color(0xFFDC2626),
+                        ),
                       );
+                      return;
                     }
+                    Navigator.of(ctx).pop();
+                    await _createDocument(
+                      userId: userId,
+                      title: titleCtrl.text.trim(),
+                      documentType: documentType,
+                      fileName: pickedFileName!,
+                      notes: notesCtrl.text.trim(),
+                    );
                   },
                   child: const Text('Save'),
                 ),
@@ -161,6 +393,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
         );
       },
     );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Future<void> _createDocument({
@@ -343,7 +581,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         leading: CircleAvatar(
           backgroundColor: const Color(0xFFEFF6FF),
           child: Icon(_iconForType(type), color: const Color(0xFF1D4ED8)),
