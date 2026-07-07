@@ -137,6 +137,75 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  String _timeKeyFromTimeOfDay(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _normalizeApiTime(String raw) {
+    final parts = raw.split(':');
+    if (parts.length < 2) return raw;
+    final hour = parts[0].padLeft(2, '0');
+    final minute = parts[1].padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  bool _isPastDateTime(DateTime date, TimeOfDay time) {
+    final selected = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    return selected.isBefore(DateTime.now());
+  }
+
+  bool _isActiveBookingStatus(String? status) {
+    final value = (status ?? '').toLowerCase();
+    return value != 'cancelled';
+  }
+
+  bool _isTimeSlotAlreadyBooked(DateTime date, TimeOfDay time) {
+    final dateKey = _formatDateKey(date);
+    final timeKey = _timeKeyFromTimeOfDay(time);
+
+    return _allAppointments.any((appt) {
+      final status = appt['status']?.toString();
+      if (!_isActiveBookingStatus(status)) {
+        return false;
+      }
+
+      final apptDate = appt['appointment_date']?.toString() ?? '';
+      final apptTime = _normalizeApiTime(
+        appt['appointment_time']?.toString() ?? '',
+      );
+
+      return apptDate == dateKey && apptTime == timeKey;
+    });
+  }
+
+  String? _validateBookingSelection({
+    required String serviceName,
+    required DateTime date,
+    required TimeOfDay time,
+  }) {
+    if (serviceName.trim().isEmpty) {
+      return 'Please enter service name.';
+    }
+
+    if (_isPastDateTime(date, time)) {
+      return 'You cannot book in the past.';
+    }
+
+    if (_isTimeSlotAlreadyBooked(date, time)) {
+      return 'Time slot already booked.';
+    }
+
+    return null;
+  }
+
   Future<void> _openBookDialog() async {
     final userId = _userId;
     if (userId == null) {
@@ -152,16 +221,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final titleCtrl = TextEditingController(text: 'Consultation');
     final notesCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    String? validationError;
     DateTime pickedDate = _selectedDay.isBefore(DateTime.now())
         ? DateTime.now().add(const Duration(days: 1))
         : _selectedDay;
     TimeOfDay pickedTime = const TimeOfDay(hour: 10, minute: 0);
+
+    validationError = _validateBookingSelection(
+      serviceName: titleCtrl.text,
+      date: pickedDate,
+      time: pickedTime,
+    );
 
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) {
+          final canSubmit =
+              !_isSaving &&
+              (validationError == null) &&
+              titleCtrl.text.trim().isNotEmpty;
+
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -184,6 +265,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   children: [
                     TextFormField(
                       controller: titleCtrl,
+                      onChanged: (_) {
+                        setS(() {
+                          validationError = _validateBookingSelection(
+                            serviceName: titleCtrl.text,
+                            date: pickedDate,
+                            time: pickedTime,
+                          );
+                        });
+                      },
                       decoration: InputDecoration(
                         labelText: 'Title',
                         prefixIcon: const Icon(
@@ -209,7 +299,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             const Duration(days: 365),
                           ),
                         );
-                        if (d != null) setS(() => pickedDate = d);
+                        if (d != null) {
+                          setS(() {
+                            pickedDate = d;
+                            validationError = _validateBookingSelection(
+                              serviceName: titleCtrl.text,
+                              date: pickedDate,
+                              time: pickedTime,
+                            );
+                          });
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -255,7 +354,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           context: ctx,
                           initialTime: pickedTime,
                         );
-                        if (t != null) setS(() => pickedTime = t);
+                        if (t != null) {
+                          setS(() {
+                            pickedTime = t;
+                            validationError = _validateBookingSelection(
+                              serviceName: titleCtrl.text,
+                              date: pickedDate,
+                              time: pickedTime,
+                            );
+                          });
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -308,6 +416,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ),
                     ),
+                    if (validationError != null) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 16,
+                            color: Color(0xFFDC2626),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              validationError!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFDC2626),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -325,10 +456,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                onPressed: _isSaving
+                onPressed: !canSubmit
                     ? null
                     : () async {
-                        if (!formKey.currentState!.validate()) return;
+                        if (!formKey.currentState!.validate()) {
+                          return;
+                        }
+
+                        final error = _validateBookingSelection(
+                          serviceName: titleCtrl.text,
+                          date: pickedDate,
+                          time: pickedTime,
+                        );
+                        if (error != null) {
+                          setS(() => validationError = error);
+                          return;
+                        }
+
                         setS(() => _isSaving = true);
                         final result = await DatabaseService.createAppointment(
                           userId: userId,
