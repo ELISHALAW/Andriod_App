@@ -352,37 +352,9 @@ class _HomeTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.search, color: Color(0xFF94A3B8)),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search appointments',
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.tune, color: Color(0xFF94A3B8)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
+            // Removed Search Bar
+            const SizedBox(height: 8),
+
             _UpcomingAppointmentCard(
               isLoggedIn: isUserLoggedIn,
               isLoading: isLoadingUpcoming,
@@ -392,6 +364,7 @@ class _HomeTab extends StatelessWidget {
               onRefresh: onRefreshUpcoming,
             ),
             const SizedBox(height: 18),
+
             Row(
               children: [
                 Expanded(
@@ -426,11 +399,13 @@ class _HomeTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 22),
+
             const Text(
               'Quick Overview',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
+
             const _OverviewTile(
               icon: Icons.check_circle_outline,
               title: 'Appointments this week',
