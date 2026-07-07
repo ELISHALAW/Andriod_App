@@ -5,7 +5,6 @@ import 'screens/calendar_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/services_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -86,13 +85,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final pages = [
       _HomeTab(
         isUserLoggedIn: _isUserLoggedIn,
-        greeting: _malaysiaGreeting,
         userName: _userName,
-        onGoToServices: () => _onNavTap(1),
-        onGoToBook: () => _onNavTap(2),
-        onGoToAppointments: () => _onNavTap(3),
+        onGoToBook: () => _onNavTap(1),
+        onGoToAppointments: () => _onNavTap(2),
+        onGoToProfile: () => _onNavTap(3),
       ),
-      const ServicesScreen(),
       const CalendarScreen(),
       const AppointmentsScreen(),
       const ProfileScreen(),
@@ -100,44 +97,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: _selectedIndex <= 1
+      appBar: _selectedIndex == 0
           ? AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
               centerTitle: false,
-              title: _selectedIndex == 0
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isUserLoggedIn
-                              ? '$_malaysiaGreeting, $_userName'
-                              : 'Welcome to Client Booking App',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _isUserLoggedIn
-                              ? 'Manage your bookings and services'
-                              : 'Sign in to book appointments',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Text(
-                      'Support',
-                      style: TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w700,
-                      ),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isUserLoggedIn
+                        ? '$_malaysiaGreeting, $_userName'
+                        : 'Welcome to Client Booking App',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F172A),
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _isUserLoggedIn
+                        ? 'Manage your bookings and appointments'
+                        : 'Sign in to book appointments',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
               actions: [
                 if (!_isUserLoggedIn)
                   Padding(
@@ -167,10 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.miscellaneous_services_outlined),
-            label: 'Support',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month_outlined),
             label: 'Book Appointment',
           ),
@@ -191,19 +176,17 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeTab extends StatelessWidget {
   const _HomeTab({
     required this.isUserLoggedIn,
-    required this.greeting,
     required this.userName,
-    required this.onGoToServices,
     required this.onGoToBook,
     required this.onGoToAppointments,
+    required this.onGoToProfile,
   });
 
   final bool isUserLoggedIn;
-  final String greeting;
   final String userName;
-  final VoidCallback onGoToServices;
   final VoidCallback onGoToBook;
   final VoidCallback onGoToAppointments;
+  final VoidCallback onGoToProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +203,7 @@ class _HomeTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -233,7 +216,7 @@ class _HomeTab extends StatelessWidget {
                   Expanded(
                     child: TextField(
                       decoration: InputDecoration(
-                        hintText: 'Search services and appointments',
+                        hintText: 'Search appointments',
                         border: InputBorder.none,
                         isDense: true,
                       ),
@@ -248,20 +231,10 @@ class _HomeTab extends StatelessWidget {
               children: [
                 Expanded(
                   child: _ActionCard(
-                    title: 'Support',
-                    subtitle: 'Message admin and get help',
-                    icon: Icons.miscellaneous_services_outlined,
-                    color: const Color(0xFF2563EB),
-                    onTap: onGoToServices,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ActionCard(
                     title: 'Book Appointment',
                     subtitle: 'Reserve your slot',
                     icon: Icons.calendar_month_outlined,
-                    color: const Color(0xFF7C3AED),
+                    color: const Color(0xFF2563EB),
                     onTap: onGoToBook,
                   ),
                 ),
@@ -271,8 +244,18 @@ class _HomeTab extends StatelessWidget {
                     title: 'My Appointments',
                     subtitle: 'Track your bookings',
                     icon: Icons.event_note_outlined,
-                    color: const Color(0xFF059669),
+                    color: const Color(0xFF7C3AED),
                     onTap: onGoToAppointments,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ActionCard(
+                    title: 'Profile',
+                    subtitle: 'Manage your account',
+                    icon: Icons.person_outline,
+                    color: const Color(0xFF059669),
+                    onTap: onGoToProfile,
                   ),
                 ),
               ],
@@ -336,11 +319,13 @@ class _ActionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [color, color.withOpacity(0.78)]),
+          gradient: LinearGradient(
+            colors: [color, color.withValues(alpha: 0.78)],
+          ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.22),
+              color: color.withValues(alpha: 0.22),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -399,7 +384,7 @@ class _OverviewTile extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: color.withOpacity(0.12),
+            backgroundColor: color.withValues(alpha: 0.12),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(width: 12),

@@ -375,20 +375,6 @@ class DatabaseService {
     }
   }
 
-  /// Convenience method for support chat from app user to admin.
-  static Future<Map<String, dynamic>> sendToAdmin({
-    required int userId,
-    required String message,
-    String subject = 'Support Request',
-  }) async {
-    return createMessage(
-      userId: userId,
-      sender: 'User',
-      subject: subject,
-      body: message,
-    );
-  }
-
   /// Mark a message as read
   static Future<Map<String, dynamic>> markMessageRead({
     required int messageId,
