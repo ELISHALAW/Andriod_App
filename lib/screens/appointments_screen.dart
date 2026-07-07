@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'appointment_detail_screen.dart';
+
 import '../services/database_service.dart';
+import 'appointment_detail_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -11,10 +12,14 @@ class AppointmentsScreen extends StatefulWidget {
 }
 
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
   bool _isLoading = false;
   bool _isCancelling = false;
   int? _userId;
   String _statusMessage = '';
+  String _searchQuery = '';
+  AppointmentFilter _selectedFilter = AppointmentFilter.all;
   List<Map<String, dynamic>> _appointments = [];
 
   static const Color _primary = Color(0xFF0F172A);
@@ -25,6 +30,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   void initState() {
     super.initState();
     _loadAppointments();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAppointments() async {
@@ -54,9 +65,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       _statusMessage = result['message'] ?? '';
       _appointments = data is List
           ? data
-                .whereType<Map>()
-                .map((item) => Map<String, dynamic>.from(item))
-                .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
           : [];
     });
   }
@@ -71,7 +82,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
   String _normalizedStatus(String status) {
     final value = status.trim().toLowerCase();
-    if (value == 'cancelled') return 'cancelled';
+    if (value == 'cancelled' || value == 'canceled') return 'cancelled';
     if (value == 'pending') return 'pending';
     return 'confirmed';
   }
@@ -101,6 +112,102 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   bool _canCancel(String status) {
     final normalized = _normalizedStatus(status);
     return normalized == 'confirmed' || normalized == 'pending';
+  }
+
+  DateTime? _parseAppointmentDate(Map<String, dynamic> item) {
+    final rawDate = (item['appointment_date']?.toString() ?? '').trim();
+    final rawTime = (item['appointment_time']?.toString() ?? '').trim();
+
+    if (rawDate.isEmpty) return null;
+
+    final dateParts = rawDate.split(RegExp(r'[-/]'));
+    DateTime? parsedDate;
+    if (dateParts.length >= 3) {
+      final first = int.tryParse(dateParts[0]);
+      final second = int.tryParse(dateParts[1]);
+      final third = int.tryParse(dateParts[2]);
+      if (first != null && second != null && third != null) {
+        if (dateParts[0].length == 4) {
+          parsedDate = DateTime(first, second, third);
+        } else {
+          parsedDate = DateTime(third, second, first);
+        }
+      }
+    }
+
+    if (parsedDate == null) {
+      parsedDate = DateTime.tryParse(rawDate);
+    }
+
+    if (parsedDate == null) return null;
+
+    if (rawTime.isNotEmpty) {
+      final timeMatch = RegExp(r'^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$').firstMatch(rawTime);
+      if (timeMatch != null) {
+        var hour = int.tryParse(timeMatch.group(1) ?? '0') ?? 0;
+        final minute = int.tryParse(timeMatch.group(2) ?? '0') ?? 0;
+        final period = (timeMatch.group(3) ?? '').toLowerCase();
+        if (period == 'pm' && hour < 12) hour += 12;
+        if (period == 'am' && hour == 12) hour = 0;
+        parsedDate = DateTime(
+          parsedDate.year,
+          parsedDate.month,
+          parsedDate.day,
+          hour,
+          minute,
+        );
+      }
+    }
+
+    return parsedDate;
+  }
+
+  bool _matchesSearch(Map<String, dynamic> item) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+
+    final title = item['title']?.toString().toLowerCase() ?? '';
+    final notes = item['notes']?.toString().toLowerCase() ?? '';
+    return title.contains(query) || notes.contains(query);
+  }
+
+  bool _matchesFilter(Map<String, dynamic> item) {
+    final status = item['status']?.toString() ?? 'confirmed';
+    final normalizedStatus = _normalizedStatus(status);
+    final appointmentDateTime = _parseAppointmentDate(item);
+    final now = DateTime.now();
+
+    switch (_selectedFilter) {
+      case AppointmentFilter.all:
+        return true;
+      case AppointmentFilter.cancelled:
+        return normalizedStatus == 'cancelled';
+      case AppointmentFilter.upcoming:
+        if (normalizedStatus == 'cancelled') return false;
+        if (appointmentDateTime == null) return true;
+        return appointmentDateTime.isAfter(now) || _isSameDay(appointmentDateTime, now);
+      case AppointmentFilter.past:
+        if (normalizedStatus == 'cancelled') return false;
+        if (appointmentDateTime == null) return false;
+        return appointmentDateTime.isBefore(now) && !_isSameDay(appointmentDateTime, now);
+    }
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  List<Map<String, dynamic>> _filteredAppointments() {
+    final list = _appointments.where(_matchesSearch).where(_matchesFilter).toList();
+    list.sort((a, b) {
+      final aDate = _parseAppointmentDate(a);
+      final bDate = _parseAppointmentDate(b);
+      if (aDate == null && bDate == null) return 0;
+      if (aDate == null) return 1;
+      if (bDate == null) return -1;
+      return bDate.compareTo(aDate);
+    });
+    return list;
   }
 
   Future<void> _confirmAndCancelAppointment({
@@ -187,6 +294,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filtered = _filteredAppointments();
+
     return Scaffold(
       backgroundColor: _surface,
       appBar: AppBar(
@@ -228,6 +337,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               style: TextStyle(fontSize: 14, color: _muted),
             ),
             const SizedBox(height: 18),
+            _buildSearchField(),
+            const SizedBox(height: 12),
+            _buildFilterChips(),
+            const SizedBox(height: 18),
             if (_isLoading)
               const Center(
                 child: Padding(
@@ -242,8 +355,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 Icons.event_available_outlined,
                 'No appointments yet. Tap Book to add your first booking.',
               )
+            else if (filtered.isEmpty)
+              _buildEmptyState(
+                Icons.search_off_outlined,
+                'No appointments match your search or filter.',
+              )
             else
-              ..._appointments.map(
+              ...filtered.map(
                 (item) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _buildAppointmentCard(item),
@@ -253,6 +371,75 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value;
+        });
+      },
+      decoration: InputDecoration(
+        hintText: 'Search appointments...',
+        prefixIcon: const Icon(Icons.search),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.4),
+        ),
+        suffixIcon: _searchQuery.isEmpty
+            ? null
+            : IconButton(
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+                icon: const Icon(Icons.clear),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: AppointmentFilter.values.map((filter) {
+        final selected = filter == _selectedFilter;
+        return FilterChip(
+          selected: selected,
+          label: Text(filter.label),
+          onSelected: (_) {
+            setState(() => _selectedFilter = filter);
+          },
+          selectedColor: const Color(0xFFDBEAFE),
+          checkmarkColor: const Color(0xFF1D4ED8),
+          labelStyle: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: selected ? const Color(0xFF1D4ED8) : _muted,
+          ),
+          side: BorderSide(
+            color: selected ? const Color(0xFF93C5FD) : const Color(0xFFE2E8F0),
+          ),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -409,3 +596,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 }
+
+enum AppointmentFilter { all, upcoming, past, cancelled }
+
+extension AppointmentFilterLabel on AppointmentFilter {
+  String get label {
+    switch (this) {
+      case AppointmentFilter.all:
+        return 'All';
+      case AppointmentFilter.upcoming:
+        return 'Upcoming';
+      case AppointmentFilter.past:
+        return 'Past';
+      case AppointmentFilter.cancelled:
+        return 'Cancelled';
+    }
+  }
+}
+
+
