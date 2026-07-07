@@ -13,16 +13,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   bool _isDeleting = false;
-  Map<String, dynamic>? _result;
-  String _statusMessage = '';
+
   int? _userId;
   String _userName = 'User';
   String _userEmail = '';
   String _userPhone = '';
   String _userAddress = '';
-  int _appointmentCount = 0;
-  int _messageCount = 0;
-  int _documentCount = 0;
 
   @override
   void initState() {
@@ -99,12 +95,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Name'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Enter your name';
-                      }
-                      return null;
-                    },
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty) ? 'Enter your name' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -124,20 +116,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: phoneCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone number',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Phone number'),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Enter your phone';
                       }
-                      final normalized = value.replaceAll(
-                        RegExp(r'[\s\-]'),
-                        '',
-                      );
-                      final malaysianPhoneRegex = RegExp(
-                        r'^(?:\+601|01)[0-9]{8,9}$',
-                      );
+                      final normalized = value.replaceAll(RegExp(r'[\s\-]'), '');
+                      final malaysianPhoneRegex = RegExp(r'^(?:\+601|01)[0-9]{8,9}$');
                       if (!malaysianPhoneRegex.hasMatch(normalized)) {
                         return 'Enter a valid Malaysian phone number';
                       }
@@ -148,12 +133,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextFormField(
                     controller: addressCtrl,
                     decoration: const InputDecoration(labelText: 'Address'),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Enter your address';
-                      }
-                      return null;
-                    },
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty) ? 'Enter your address' : null,
                   ),
                 ],
               ),
@@ -192,9 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) async {
     if (_userId == null) return;
 
-    setState(() {
-      _isSaving = true;
-    });
+    setState(() => _isSaving = true);
 
     final result = await DatabaseService.updateProfile(
       userId: _userId!,
@@ -214,16 +193,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await prefs.setString('userName', _userName);
       await prefs.setString('userEmail', _userEmail);
 
-      _showSuccessSnackBar(
-        result['message'] ?? 'Profile updated successfully.',
-      );
+      _showSuccessSnackBar(result['message'] ?? 'Profile updated successfully.');
     } else {
       _showErrorSnackBar(result['message'] ?? 'Profile update failed.');
     }
 
-    setState(() {
-      _isSaving = false;
-    });
+    setState(() => _isSaving = false);
   }
 
   void _showSuccessSnackBar(String message) {
@@ -281,32 +256,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Delete Account'),
-          content: const Text(
-            'This will permanently delete your account and all associated data. This action cannot be undone. Continue?',
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'This will permanently delete your account and all associated data. This action cannot be undone. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
 
     if (confirmed != true) return;
 
-    setState(() {
-      _isDeleting = true;
-    });
+    setState(() => _isDeleting = true);
 
     final result = await DatabaseService.deleteProfile(userId: _userId!);
     if (result['success'] == true) {
@@ -319,10 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     _showErrorSnackBar(result['message'] ?? 'Failed to delete account.');
-
-    setState(() {
-      _isDeleting = false;
-    });
+    setState(() => _isDeleting = false);
   }
 
   Future<void> _clearSession() async {
@@ -330,21 +298,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await prefs.remove('userId');
     await prefs.remove('userName');
     await prefs.remove('userEmail');
-  }
-
-  Future<void> _testConnection() async {
-    setState(() {
-      _isLoading = true;
-      _statusMessage = 'Testing connection...';
-    });
-
-    final result = await DatabaseService.testConnection();
-
-    setState(() {
-      _result = result;
-      _isLoading = false;
-      _statusMessage = result['message'] ?? 'Test completed';
-    });
   }
 
   @override
@@ -367,15 +320,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildHeaderCard(),
                   const SizedBox(height: 24),
-                  _buildStatsSection(),
-                  const SizedBox(height: 24),
                   _buildAccountSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   _buildActionButtons(),
                   const SizedBox(height: 40),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade400, Colors.blue.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(Icons.person, color: Color(0xFF1D4ED8), size: 40),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _userName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _userEmail,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Active',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -465,31 +493,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1D4ED8),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           icon: const Icon(Icons.edit),
           label: _isSaving
               ? const SizedBox(
                   height: 18,
                   width: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
               : const Text('Edit Profile'),
         ),
         const SizedBox(height: 12),
         ElevatedButton.icon(
-          onPressed: _isDeleting ? null : _handleLogout,
+          onPressed: _handleLogout,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0F172A),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           icon: const Icon(Icons.logout),
           label: const Text('Logout'),
@@ -501,9 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             foregroundColor: Colors.red,
             side: const BorderSide(color: Colors.red),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           icon: const Icon(Icons.delete_outline),
           label: _isDeleting
@@ -520,371 +539,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
-
-  Widget _buildHeaderCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(Icons.person, color: Color(0xFF1D4ED8), size: 40),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _userName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _userEmail,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Active',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsSection() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            _appointmentCount.toString(),
-            'Appointments',
-            Colors.blue,
-            Icons.calendar_today,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            _messageCount.toString(),
-            'Messages',
-            Colors.green,
-            Icons.message,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            _documentCount.toString(),
-            'Documents',
-            Colors.orange,
-            Icons.description,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-    String value,
-    String label,
-    Color color,
-    IconData icon,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionCard({
-    required String title,
-    required List<_ProfileItemData> items,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-          ),
-          ...items.map(
-            (item) => Column(
-              children: [
-                ListTile(
-                  leading: Icon(item.icon, color: const Color(0xFF0F172A)),
-                  title: Text(
-                    item.title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF94A3B8),
-                  ),
-                  onTap: () {},
-                ),
-                if (item != items.last) const Divider(height: 0),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConnectionCard(Color textColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.storage, color: Color(0xFF1D4ED8)),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Verify database connection',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Confirm your PHP/MySQL backend is reachable and working.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusCard() {
-    final success = _result != null && _result!['success'] == true;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: success ? Colors.green.shade50 : Colors.red.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: success ? Colors.green : Colors.red),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            success ? Icons.check_circle : Icons.error,
-            color: success ? Colors.green : Colors.red,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _statusMessage,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: success ? Colors.green.shade900 : Colors.red.shade900,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultCard(Map<String, dynamic> result) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDetailRow(
-            'Status',
-            result['success'] == true ? '✓ Success' : '✗ Failed',
-          ),
-          const Divider(),
-          _buildDetailRow('Message', result['message'] ?? 'N/A'),
-          if (result['data'] != null) ...[
-            const Divider(),
-            ..._buildDataRows(result['data']),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Color(0xFF0F172A)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildDataRows(dynamic data) {
-    if (data is Map) {
-      return data.entries
-          .map((e) => _buildDetailRow(e.key.toString(), e.value.toString()))
-          .toList();
-    }
-    return [];
-  }
-}
-
-class _ProfileItemData {
-  final IconData icon;
-  final String title;
-
-  _ProfileItemData(this.icon, this.title);
 }
