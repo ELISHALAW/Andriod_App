@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
-import 'screens/database_test_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/notifications_screen.dart';
 import 'screens/appointments_screen.dart';
 import 'screens/calendar_screen.dart';
-import 'screens/messages_screen.dart';
-import 'screens/documents_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/services_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,11 +29,9 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/database-test': (context) => const DatabaseTestScreen(),
         '/profile': (context) => const ProfileScreen(),
-        '/appointments': (context) => const AppointmentsScreen(),
         '/calendar': (context) => const CalendarScreen(),
-        '/documents': (context) => const DocumentsScreen(),
+        '/appointments': (context) => const AppointmentsScreen(),
       },
     );
   }
@@ -51,555 +46,115 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  String _userName = 'Alex';
+  String _userName = 'Guest';
   bool _isUserLoggedIn = false;
 
   String get _malaysiaGreeting {
     final malaysiaTime = DateTime.now().toUtc().add(const Duration(hours: 8));
     final hour = malaysiaTime.hour;
 
-    if (hour >= 6 && hour < 12) {
-      return 'Good morning';
-    }
-    if (hour >= 12 && hour < 18) {
-      return 'Good Afternoon';
-    }
+    if (hour >= 6 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 18) return 'Good afternoon';
     return 'Good evening';
   }
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
-    _checkLoggedIn();
+    _loadUserSession();
   }
 
-  Future<void> _loadUserName() async {
+  Future<void> _loadUserSession() async {
     final prefs = await SharedPreferences.getInstance();
     final savedName = prefs.getString('userName');
-    if (savedName != null && savedName.isNotEmpty) {
-      setState(() => _userName = savedName);
-    }
-  }
-
-  Future<void> _checkLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('userId');
-    setState(() => _isUserLoggedIn = userId != null);
+
+    setState(() {
+      _isUserLoggedIn = userId != null;
+      if (savedName != null && savedName.isNotEmpty) {
+        _userName = savedName;
+      }
+    });
   }
 
   void _onNavTap(int idx) {
-    if (idx == 3) {
-      Navigator.pushNamed(context, '/profile');
-    } else {
-      setState(() => _selectedIndex = idx);
-    }
-  }
-
-  Widget _buildMessagesBody() {
-    final messages = [
-      {
-        'title': 'Project kickoff',
-        'subtitle': 'Let’s meet at 10:00 to review requirements.',
-        'time': 'Now',
-        'unread': true,
-      },
-      {
-        'title': 'Design review',
-        'subtitle': 'The new wireframes are ready for your feedback.',
-        'time': '1h ago',
-        'unread': true,
-      },
-      {
-        'title': 'Sales update',
-        'subtitle': 'Monthly report has been uploaded to the dashboard.',
-        'time': 'Yesterday',
-        'unread': false,
-      },
-      {
-        'title': 'Support team',
-        'subtitle': 'We have scheduled a follow-up call tomorrow.',
-        'time': '2d ago',
-        'unread': false,
-      },
-      {
-        'title': 'Anna Morris',
-        'subtitle': 'I reviewed the latest draft and it looks great.',
-        'time': '3d ago',
-        'unread': false,
-      },
-    ];
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Messages',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Catch up with your latest conversations.',
-              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.search, color: Color(0xFF94A3B8)),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search messages',
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.filter_list, color: Color(0xFF94A3B8)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildChip('All', true),
-                  const SizedBox(width: 10),
-                  _buildChip('Unread', false),
-                  const SizedBox(width: 10),
-                  _buildChip('Mentions', false),
-                  const SizedBox(width: 10),
-                  _buildChip('Archived', false),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Recent',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 14),
-            ...messages.map((message) {
-              return Column(
-                children: [
-                  _buildMessageCard(
-                    title: message['title'] as String,
-                    subtitle: message['subtitle'] as String,
-                    time: message['time'] as String,
-                    unread: message['unread'] as bool,
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              );
-            }).toList(),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Archive all'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F172A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('New message'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 80),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageCard({
-    required String title,
-    required String subtitle,
-    required String time,
-    required bool unread,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundColor: unread
-              ? const Color(0xFF0F172A)
-              : const Color(0xFFE2E8F0),
-          child: Icon(
-            Icons.chat_bubble_outline,
-            color: unread ? Colors.white : const Color(0xFF64748B),
-          ),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: unread ? const Color(0xFF0F172A) : const Color(0xFF0F172A),
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(color: Color(0xFF64748B)),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              time,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-            ),
-            if (unread)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'New',
-                  style: TextStyle(color: Colors.white, fontSize: 10),
-                ),
-              ),
-          ],
-        ),
-        onTap: () {},
-      ),
-    );
-  }
-
-  Widget _buildChip(String label, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: active ? Colors.white : const Color(0xFF0F172A),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+    setState(() => _selectedIndex = idx);
   }
 
   @override
   Widget build(BuildContext context) {
-    final textColor = const Color(0xFF0F172A);
-    final muted = const Color(0xFF64748B);
+    final pages = [
+      _HomeTab(
+        isUserLoggedIn: _isUserLoggedIn,
+        greeting: _malaysiaGreeting,
+        userName: _userName,
+        onGoToServices: () => _onNavTap(1),
+        onGoToBook: () => _onNavTap(2),
+        onGoToAppointments: () => _onNavTap(3),
+      ),
+      const ServicesScreen(),
+      const CalendarScreen(),
+      const AppointmentsScreen(),
+      const ProfileScreen(),
+    ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _isUserLoggedIn
-                  ? '$_malaysiaGreeting, $_userName'
-                  : 'Welcome to Client Booking App',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              _isUserLoggedIn
-                  ? 'Here\'s what\'s new for you'
-                  : 'Sign in to book appointments and access your documents',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_outlined, color: Color(0xFF0F172A)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.storage, color: Color(0xFF0F172A)),
-            tooltip: 'Test Database',
-            onPressed: () => Navigator.pushNamed(context, '/database-test'),
-          ),
-          if (!_isUserLoggedIn)
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: IconButton(
-                onPressed: () => Navigator.pushNamed(context, '/login'),
-                icon: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: const Color(0xFFe2e8f0),
-                  child: const Icon(Icons.person, color: Color(0xFF0F172A)),
-                ),
-              ),
-            ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search bar
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+      appBar: _selectedIndex <= 1
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              centerTitle: false,
+              title: _selectedIndex == 0
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isUserLoggedIn
+                              ? '$_malaysiaGreeting, $_userName'
+                              : 'Welcome to Client Booking App',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _isUserLoggedIn
+                              ? 'Manage your bookings and services'
+                              : 'Sign in to book appointments',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ],
+                    )
+                  : const Text(
+                      'Support',
+                      style: TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.search, color: Color(0xFF94A3B8)),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Search',
-                              border: InputBorder.none,
-                              isDense: true,
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.filter_list, color: Color(0xFF94A3B8)),
-                      ],
+              actions: [
+                if (!_isUserLoggedIn)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: IconButton(
+                      onPressed: () => Navigator.pushNamed(context, '/login'),
+                      icon: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Color(0xFFE2E8F0),
+                        child: Icon(Icons.person, color: Color(0xFF0F172A)),
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 18),
-
-                  // Promo cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildPromoCard(
-                          title: 'Book Appointment',
-                          subtitle: 'Schedule your next visit',
-                          color: const Color(0xFF6366F1),
-                          icon: Icons.calendar_month_outlined,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/calendar'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildPromoCard(
-                          title: 'Documents',
-                          subtitle: 'View files and records',
-                          color: const Color(0xFF06B6D4),
-                          icon: Icons.folder_copy_outlined,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/documents'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildPromoCard(
-                          title: 'My Appointments',
-                          subtitle: 'View your bookings',
-                          color: const Color(0xFF10B981),
-                          icon: Icons.event_note_outlined,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/appointments'),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // Today's Summary
-                  const Text(
-                    'Today\'s Summary',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          label: 'Upcoming',
-                          value: '2',
-                          icon: Icons.upcoming_outlined,
-                          color: const Color(0xFF6366F1),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildStatCard(
-                          label: 'This Month',
-                          value: '8',
-                          icon: Icons.calendar_today_outlined,
-                          color: const Color(0xFF06B6D4),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildStatCard(
-                          label: 'Cancelled',
-                          value: '1',
-                          icon: Icons.cancel_outlined,
-                          color: const Color(0xFFEF4444),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // Categories
-                  const Text(
-                    'Categories',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 0.85,
-                    children: [
-                      _buildCategory(Icons.code, 'Dev'),
-                      _buildCategory(Icons.design_services, 'Design'),
-                      _buildCategory(Icons.analytics, 'Data'),
-                      _buildCategory(Icons.business_center, 'Biz'),
-                      _buildCategory(Icons.sports_esports, 'Games'),
-                      _buildCategory(Icons.health_and_safety, 'Health'),
-                      _buildCategory(Icons.public, 'Travel'),
-                      _buildCategory(Icons.lightbulb, 'Ideas'),
-                    ],
-                  ),
-
-                  const SizedBox(height: 18),
-
-                  // Recommended
-                  const Text(
-                    'Recommended',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  Column(
-                    children: List.generate(3, (i) {
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          leading: Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.play_arrow,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          title: Text(
-                            'Recommended item ${i + 1}',
-                            style: TextStyle(
-                              color: textColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Quick summary of this item.',
-                            style: TextStyle(color: muted),
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(height: 80),
-                ],
-              ),
-            ),
-          ),
-          const MessagesScreen(),
-          const NotificationsScreen(),
-        ],
-      ),
+              ],
+            )
+          : null,
+      body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onNavTap,
@@ -612,12 +167,16 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.message_outlined),
-            label: 'Messages',
+            icon: Icon(Icons.miscellaneous_services_outlined),
+            label: 'Support',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            label: 'Alerts',
+            icon: Icon(Icons.calendar_month_outlined),
+            label: 'Book Appointment',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_note_outlined),
+            label: 'My Appointments',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -627,29 +186,161 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  Widget _buildPromoCard({
-    required String title,
-    required String subtitle,
-    required Color color,
-    required IconData icon,
-    VoidCallback? onTap,
-  }) {
+class _HomeTab extends StatelessWidget {
+  const _HomeTab({
+    required this.isUserLoggedIn,
+    required this.greeting,
+    required this.userName,
+    required this.onGoToServices,
+    required this.onGoToBook,
+    required this.onGoToAppointments,
+  });
+
+  final bool isUserLoggedIn;
+  final String greeting;
+  final String userName;
+  final VoidCallback onGoToServices;
+  final VoidCallback onGoToBook;
+  final VoidCallback onGoToAppointments;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.search, color: Color(0xFF94A3B8)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search services and appointments',
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.tune, color: Color(0xFF94A3B8)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionCard(
+                    title: 'Support',
+                    subtitle: 'Message admin and get help',
+                    icon: Icons.miscellaneous_services_outlined,
+                    color: const Color(0xFF2563EB),
+                    onTap: onGoToServices,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ActionCard(
+                    title: 'Book Appointment',
+                    subtitle: 'Reserve your slot',
+                    icon: Icons.calendar_month_outlined,
+                    color: const Color(0xFF7C3AED),
+                    onTap: onGoToBook,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ActionCard(
+                    title: 'My Appointments',
+                    subtitle: 'Track your bookings',
+                    icon: Icons.event_note_outlined,
+                    color: const Color(0xFF059669),
+                    onTap: onGoToAppointments,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            const Text(
+              'Quick Overview',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            const _OverviewTile(
+              icon: Icons.check_circle_outline,
+              title: 'Appointments this week',
+              value: '3',
+              color: Color(0xFF2563EB),
+            ),
+            const SizedBox(height: 10),
+            const _OverviewTile(
+              icon: Icons.schedule_outlined,
+              title: 'Upcoming today',
+              value: '1',
+              color: Color(0xFF7C3AED),
+            ),
+            const SizedBox(height: 10),
+            _OverviewTile(
+              icon: Icons.person_outline,
+              title: isUserLoggedIn
+                  ? 'Signed in as $userName'
+                  : 'Account status',
+              value: isUserLoggedIn ? 'Active' : 'Guest',
+              color: const Color(0xFF059669),
+            ),
+            const SizedBox(height: 90),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color, color.withOpacity(0.75)],
-          ),
+          gradient: LinearGradient(colors: [color, color.withOpacity(0.78)]),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.25),
+              color: color.withOpacity(0.22),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -658,8 +349,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Colors.white, size: 26),
-            const SizedBox(height: 12),
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(height: 10),
             Text(
               title,
               style: const TextStyle(
@@ -680,81 +371,58 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  Widget _buildStatCard({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
+class _OverviewTile extends StatelessWidget {
+  const _OverviewTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 16),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withOpacity(0.12),
+            child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
+              fontSize: 14,
               color: Color(0xFF0F172A),
+              fontWeight: FontWeight.w800,
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCategory(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: const Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF334155)),
-        ),
-      ],
     );
   }
 }

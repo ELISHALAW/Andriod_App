@@ -100,49 +100,6 @@ INSERT INTO `messages` (`id`, `user_id`, `sender`, `subject`, `body`, `is_read`,
 -- --------------------------------------------------------
 
 --
--- Table structure for table `notifications`
---
-
-CREATE TABLE `notifications` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `title` varchar(120) NOT NULL,
-  `message` text NOT NULL,
-  `type` varchar(30) NOT NULL DEFAULT 'info',
-  `is_read` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `is_read`, `created_at`) VALUES
-(1, 1, 'Welcome back', 'Your account is ready and notifications are now enabled.', 'success', 1, '2026-07-03 12:52:33'),
-(2, 1, 'Profile reminder', 'Keep your profile details updated so your account stays accurate.', 'profile', 1, '2026-07-03 12:52:33'),
-(3, 1, 'Database connected', 'Your PHP and MySQL backend can now serve app notifications.', 'info', 1, '2026-07-03 12:52:33'),
-(4, 1, 'Profile incomplete', 'Add your phone number and address to complete your profile.', 'profile', 1, '2026-07-03 13:35:40'),
-(5, 1, 'Schedule changed', 'One of your upcoming appointments has a new time slot.', 'warning', 0, '2026-07-03 13:35:44'),
-(6, 1, 'Payment reminder', 'Your latest invoice is ready for review and payment.', 'warning', 0, '2026-07-03 13:35:45'),
-(7, 1, 'Schedule changed', 'One of your upcoming appointments has a new time slot.', 'warning', 0, '2026-07-03 13:35:47'),
-(8, 1, 'Document uploaded', 'A new document has been uploaded to your account.', 'success', 1, '2026-07-03 13:40:39'),
-(9, 1, 'Support reply', 'The support team has replied to your latest request.', 'info', 0, '2026-07-03 13:52:50'),
-(10, 1, 'Appointment confirmed', 'Your Consultation appointment is booked for 2026-07-04 at 10:00.', 'success', 0, '2026-07-03 13:53:29'),
-(11, 1, 'Support reply', 'The support team has replied to your latest request.', 'info', 1, '2026-07-03 14:18:18'),
-(12, 1, 'Appointment confirmed', 'Your Consultation appointment is booked for 2026-07-04 at 10:00.', 'success', 0, '2026-07-03 14:59:27'),
-(13, 1, 'Support reply', 'The support team has replied to your latest request.', 'info', 0, '2026-07-03 15:06:28'),
-(14, 1, 'Schedule changed', 'One of your upcoming appointments has a new time slot.', 'warning', 0, '2026-07-03 16:04:16'),
-(15, 1, 'Appointment confirmed', 'Your consultation booking has been confirmed for tomorrow.', 'success', 0, '2026-07-03 16:04:20'),
-(16, 1, 'System maintenance', 'The service may be unavailable for a short time tonight.', 'warning', 0, '2026-07-03 16:04:34'),
-(17, 1, 'New announcement', 'A new update has been posted by the admin team.', 'info', 0, '2026-07-03 16:04:35'),
-(19, 1, 'Payment reminder', 'Your latest invoice is ready for review and payment.', 'warning', 0, '2026-07-03 16:08:08'),
-(20, 1, 'Support reply', 'The support team has replied to your latest request.', 'info', 1, '2026-07-03 16:12:34'),
-(21, 1, 'Payment reminder', 'Your latest invoice is ready for review and payment.', 'warning', 1, '2026-07-04 02:43:37'),
-(22, 1, 'Appointment confirmed', 'Your Consultation appointment is booked for 2026-07-05 at 10:00.', 'success', 0, '2026-07-04 02:58:43');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `users`
 --
 
@@ -189,14 +146,6 @@ ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
 
---
--- Indexes for table `notifications`
---
-ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`);
-
---
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -225,13 +174,6 @@ ALTER TABLE `documents`
 ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
---
--- AUTO_INCREMENT for table `notifications`
---
-ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
-
---
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
@@ -247,11 +189,6 @@ ALTER TABLE `users`
 ALTER TABLE `appointments`
   ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
---
--- Constraints for table `notifications`
---
-ALTER TABLE `notifications`
-  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

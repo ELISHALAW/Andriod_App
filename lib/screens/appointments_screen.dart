@@ -11,10 +11,14 @@ class AppointmentsScreen extends StatefulWidget {
 
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
   bool _isLoading = false;
-  bool _isSaving = false;
+  bool _isCancelling = false;
   int? _userId;
   String _statusMessage = '';
   List<Map<String, dynamic>> _appointments = [];
+
+  static const Color _primary = Color(0xFF0F172A);
+  static const Color _muted = Color(0xFF64748B);
+  static const Color _surface = Color(0xFFF8FAFC);
 
   @override
   void initState() {
@@ -49,154 +53,95 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       _statusMessage = result['message'] ?? '';
       _appointments = data is List
           ? data
-              .whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList()
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
           : [];
     });
   }
 
-  Future<void> _openCreateDialog() async {
-    final userId = _userId;
-    if (userId == null) {
-      _showSnackBar(false, 'Please login first.');
-      return;
-    }
-
-    final titleCtrl = TextEditingController(text: 'Consultation');
-    final notesCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
-    TimeOfDay selectedTime = const TimeOfDay(hour: 10, minute: 0);
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final dateText = _formatDate(selectedDate);
-            final timeText = _formatTimeOfDay(selectedTime);
-
-            return AlertDialog(
-              title: const Text('Book appointment'),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: titleCtrl,
-                        decoration: const InputDecoration(labelText: 'Title'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Enter appointment title';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.calendar_month_outlined),
-                        title: Text(dateText),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                          );
-                          if (picked != null) {
-                            setDialogState(() => selectedDate = picked);
-                          }
-                        },
-                      ),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.schedule_outlined),
-                        title: Text(timeText),
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: selectedTime,
-                          );
-                          if (picked != null) {
-                            setDialogState(() => selectedTime = picked);
-                          }
-                        },
-                      ),
-                      TextFormField(
-                        controller: notesCtrl,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Notes',
-                          hintText: 'Optional',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState?.validate() ?? false) {
-                      Navigator.of(context).pop();
-                      await _createAppointment(
-                        userId: userId,
-                        title: titleCtrl.text.trim(),
-                        appointmentDate: _formatDate(selectedDate),
-                        appointmentTime: _formatTimeOfDay(selectedTime),
-                        notes: notesCtrl.text.trim(),
-                      );
-                    }
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _createAppointment({
-    required int userId,
-    required String title,
-    required String appointmentDate,
-    required String appointmentTime,
-    required String notes,
-  }) async {
-    setState(() => _isSaving = true);
-
-    final result = await DatabaseService.createAppointment(
-      userId: userId,
-      title: title,
-      appointmentDate: appointmentDate,
-      appointmentTime: appointmentTime,
-      notes: notes,
-    );
-
-    setState(() => _isSaving = false);
-    _showSnackBar(result['success'] == true, result['message'] ?? '');
-
-    if (result['success'] == true) {
+  Future<void> _goToBookingScreen() async {
+    final result = await Navigator.pushNamed(context, '/calendar');
+    if (!mounted) return;
+    if (result != null) {
       await _loadAppointments();
     }
   }
 
-  Future<void> _cancelAppointment(int appointmentId) async {
+  String _normalizedStatus(String status) {
+    final value = status.trim().toLowerCase();
+    if (value == 'cancelled') return 'cancelled';
+    if (value == 'pending') return 'pending';
+    return 'confirmed';
+  }
+
+  ({Color text, Color bg}) _statusColors(String status) {
+    switch (_normalizedStatus(status)) {
+      case 'cancelled':
+        return (text: const Color(0xFFDC2626), bg: const Color(0xFFFEE2E2));
+      case 'pending':
+        return (text: const Color(0xFFD97706), bg: const Color(0xFFFEF3C7));
+      default:
+        return (text: const Color(0xFF059669), bg: const Color(0xFFDCFCE7));
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (_normalizedStatus(status)) {
+      case 'cancelled':
+        return 'Cancelled';
+      case 'pending':
+        return 'Pending';
+      default:
+        return 'Confirmed';
+    }
+  }
+
+  bool _canCancel(String status) {
+    final normalized = _normalizedStatus(status);
+    return normalized == 'confirmed' || normalized == 'pending';
+  }
+
+  Future<void> _confirmAndCancelAppointment({
+    required int appointmentId,
+    required String status,
+  }) async {
+    if (!_canCancel(status) || _isCancelling) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel appointment'),
+        content: const Text('Are you sure you want to cancel this booking?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Cancel Booking'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    setState(() => _isCancelling = true);
+
     final result = await DatabaseService.cancelAppointment(
       appointmentId: appointmentId,
     );
+
+    if (!mounted) return;
+    setState(() => _isCancelling = false);
 
     _showSnackBar(result['success'] == true, result['message'] ?? '');
 
@@ -214,26 +159,25 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
-  }
-
-  String _formatTimeOfDay(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+  String _displayDateTime(String date, String time) {
+    final cleanDate = date.trim();
+    final cleanTime = time.trim();
+    if (cleanDate.isEmpty && cleanTime.isEmpty) {
+      return 'Date and time unavailable';
+    }
+    if (cleanDate.isEmpty) return cleanTime;
+    if (cleanTime.isEmpty) return cleanDate;
+    return '$cleanDate at $cleanTime';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: _surface,
       appBar: AppBar(
         title: const Text('Appointments'),
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
+        foregroundColor: _primary,
         elevation: 0,
         actions: [
           IconButton(
@@ -244,19 +188,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isSaving ? null : _openCreateDialog,
-        backgroundColor: const Color(0xFF0F172A),
+        onPressed: _goToBookingScreen,
+        backgroundColor: _primary,
         foregroundColor: Colors.white,
-        icon: _isSaving
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.add),
+        icon: const Icon(Icons.add),
         label: const Text('Book'),
       ),
       body: RefreshIndicator(
@@ -269,13 +204,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
+                color: _primary,
               ),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Create and manage your appointment schedule.',
-              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              'View your bookings and cancel when needed.',
+              style: TextStyle(fontSize: 14, color: _muted),
             ),
             const SizedBox(height: 18),
             if (_isLoading)
@@ -290,7 +225,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             else if (_appointments.isEmpty)
               _buildEmptyState(
                 Icons.event_available_outlined,
-                'No appointments yet. Tap Book to create one.',
+                'No appointments yet. Tap Book to add your first booking.',
               )
             else
               ..._appointments.map(
@@ -312,69 +247,105 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final date = item['appointment_date']?.toString() ?? '';
     final time = item['appointment_time']?.toString() ?? '';
     final notes = item['notes']?.toString() ?? '';
-    final status = item['status']?.toString() ?? 'pending';
-    final isCancelled = status == 'cancelled';
+    final status = item['status']?.toString() ?? 'confirmed';
+    final normalizedStatus = _normalizedStatus(status);
+    final canCancel = _canCancel(status);
+    final statusPalette = _statusColors(status);
+    final isCancelled = normalizedStatus == 'cancelled';
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isCancelled ? const Color(0xFFFCA5A5) : const Color(0xFFE2E8F0),
+          color: isCancelled
+              ? const Color(0xFFFCA5A5)
+              : const Color(0xFFE2E8F0),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        leading: CircleAvatar(
-          backgroundColor:
-              isCancelled ? const Color(0xFFFEE2E2) : const Color(0xFFEFF6FF),
-          child: Icon(
-            isCancelled ? Icons.event_busy_outlined : Icons.event_note_outlined,
-            color:
-                isCancelled ? const Color(0xFFDC2626) : const Color(0xFF1D4ED8),
-          ),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$date at $time',
-                style: const TextStyle(color: Color(0xFF64748B)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: isCancelled
+                  ? const Color(0xFFFEE2E2)
+                  : const Color(0xFFEFF6FF),
+              child: Icon(
+                isCancelled
+                    ? Icons.event_busy_outlined
+                    : Icons.event_note_outlined,
+                color: isCancelled
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF1D4ED8),
               ),
-              if (notes.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(notes, style: const TextStyle(color: Color(0xFF64748B))),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                status.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: isCancelled
-                      ? const Color(0xFFDC2626)
-                      : const Color(0xFF16A34A),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: _primary,
+                      fontSize: 17,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _displayDateTime(date, time),
+                    style: const TextStyle(color: _muted),
+                  ),
+                  if (notes.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(notes, style: const TextStyle(color: _muted)),
+                  ],
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusPalette.bg,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      _statusLabel(status),
+                      style: TextStyle(
+                        color: statusPalette.text,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        trailing: isCancelled
-            ? null
-            : IconButton(
-                tooltip: 'Cancel appointment',
-                onPressed: () => _cancelAppointment(id),
+            ),
+            if (canCancel)
+              IconButton(
+                tooltip: _isCancelling ? 'Cancelling...' : 'Cancel appointment',
+                onPressed: _isCancelling
+                    ? null
+                    : () => _confirmAndCancelAppointment(
+                        appointmentId: id,
+                        status: status,
+                      ),
                 icon: const Icon(Icons.close),
+                color: const Color(0xFFDC2626),
               ),
+          ],
+        ),
       ),
     );
   }
@@ -395,8 +366,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF64748B)),
+            style: const TextStyle(color: _muted),
           ),
+          if (_userId != null) ...[
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _goToBookingScreen,
+              style: FilledButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Book Appointment'),
+            ),
+          ],
         ],
       ),
     );

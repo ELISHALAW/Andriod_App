@@ -204,126 +204,6 @@ class DatabaseService {
     }
   }
 
-  /// Fetch notifications for a user
-  static Future<Map<String, dynamic>> getNotifications({
-    required int userId,
-  }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/get_notifications.php'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'user_id': userId}),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final data = jsonDecode(response.body);
-      return {
-        'success': response.statusCode == 200
-            ? (data['success'] ?? false)
-            : false,
-        'message': data['message'] ?? 'Unknown response',
-        'data': data['data'] ?? [],
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Fetch notifications failed: $e',
-        'data': [],
-      };
-    }
-  }
-
-  /// Mark a notification as read
-  static Future<Map<String, dynamic>> markNotificationRead({
-    required int notificationId,
-  }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/mark_notification_read.php'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'id': notificationId}),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final data = jsonDecode(response.body);
-      return {
-        'success': response.statusCode == 200
-            ? (data['success'] ?? false)
-            : false,
-        'message': data['message'] ?? 'Unknown response',
-        'data': data['data'] ?? null,
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Mark notification failed: $e',
-        'data': null,
-      };
-    }
-  }
-
-  /// Delete a notification
-  static Future<Map<String, dynamic>> deleteNotification({
-    required int notificationId,
-  }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/delete_notification.php'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'id': notificationId}),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final data = jsonDecode(response.body);
-      return {
-        'success': response.statusCode == 200
-            ? (data['success'] ?? false)
-            : false,
-        'message': data['message'] ?? 'Unknown response',
-        'data': data['data'] ?? null,
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Delete notification failed: $e',
-        'data': null,
-      };
-    }
-  }
-
-  /// Generate and save a random notification for a user
-  static Future<Map<String, dynamic>> generateRandomNotification({
-    required int userId,
-  }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/create_random_notification.php'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'user_id': userId}),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final data = jsonDecode(response.body);
-      return {
-        'success': response.statusCode == 200 || response.statusCode == 201
-            ? (data['success'] ?? false)
-            : false,
-        'message': data['message'] ?? 'Unknown response',
-        'data': data['data'] ?? null,
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Generate notification failed: $e',
-        'data': null,
-      };
-    }
-  }
-
   /// Fetch appointments for a user
   static Future<Map<String, dynamic>> getAppointments({
     required int userId,
@@ -354,7 +234,7 @@ class DatabaseService {
     }
   }
 
-  /// Create an appointment and matching notification
+  /// Create an appointment
   static Future<Map<String, dynamic>> createAppointment({
     required int userId,
     required String title,
@@ -408,12 +288,17 @@ class DatabaseService {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
+      final success = data['success'] == true && response.statusCode == 200;
       return {
-        'success': response.statusCode == 200
-            ? (data['success'] ?? false)
-            : false,
-        'message': data['message'] ?? 'Unknown response',
+        'success': success,
+        'message': data['message']?.toString() ?? 'Unknown response',
         'data': data['data'] ?? null,
+      };
+    } on FormatException {
+      return {
+        'success': false,
+        'message': 'Cancel appointment failed: invalid server response.',
+        'data': null,
       };
     } catch (e) {
       return {
@@ -425,9 +310,7 @@ class DatabaseService {
   }
 
   /// Fetch messages for a user
-  static Future<Map<String, dynamic>> getMessages({
-    required int userId,
-  }) async {
+  static Future<Map<String, dynamic>> getMessages({required int userId}) async {
     try {
       final response = await http
           .post(
@@ -490,6 +373,20 @@ class DatabaseService {
         'data': null,
       };
     }
+  }
+
+  /// Convenience method for support chat from app user to admin.
+  static Future<Map<String, dynamic>> sendToAdmin({
+    required int userId,
+    required String message,
+    String subject = 'Support Request',
+  }) async {
+    return createMessage(
+      userId: userId,
+      sender: 'User',
+      subject: subject,
+      body: message,
+    );
   }
 
   /// Mark a message as read

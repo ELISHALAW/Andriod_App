@@ -81,18 +81,7 @@ $documentsTableSql = "CREATE TABLE IF NOT EXISTS documents (
     INDEX (user_id)
 )";
 
-$notificationsTableSql = "CREATE TABLE IF NOT EXISTS notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    title VARCHAR(120) NOT NULL,
-    message TEXT NOT NULL,
-    type VARCHAR(30) NOT NULL DEFAULT 'info',
-    is_read TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX (user_id)
-)";
-
-if (!$conn->query($documentsTableSql) || !$conn->query($notificationsTableSql)) {
+if (!$conn->query($documentsTableSql)) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -133,25 +122,6 @@ if (!$stmt->execute()) {
 
 $documentId = $stmt->insert_id;
 $stmt->close();
-
-$notificationTitle = 'Document uploaded';
-$notificationMessage = $title . ' has been added to your document library.';
-$notificationType = 'success';
-$notificationStmt = $conn->prepare(
-    'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)'
-);
-
-if ($notificationStmt) {
-    $notificationStmt->bind_param(
-        'isss',
-        $userId,
-        $notificationTitle,
-        $notificationMessage,
-        $notificationType
-    );
-    $notificationStmt->execute();
-    $notificationStmt->close();
-}
 
 http_response_code(201);
 echo json_encode([
