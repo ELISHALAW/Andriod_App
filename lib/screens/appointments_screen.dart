@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'appointment_detail_screen.dart';
 import '../services/database_service.dart';
 
 class AppointmentsScreen extends StatefulWidget {
@@ -150,6 +151,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
+  Future<void> _openAppointmentDetail(Map<String, dynamic> item) async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AppointmentDetailScreen(appointment: item),
+      ),
+    );
+
+    if (!mounted) return;
+    if (updated == true) {
+      await _loadAppointments();
+    }
+  }
+
   void _showSnackBar(bool success, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -253,98 +268,107 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final statusPalette = _statusColors(status);
     final isCancelled = normalizedStatus == 'cancelled';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isCancelled
-              ? const Color(0xFFFCA5A5)
-              : const Color(0xFFE2E8F0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        onTap: () => _openAppointmentDetail(item),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isCancelled
+                  ? const Color(0xFFFCA5A5)
+                  : const Color(0xFFE2E8F0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: isCancelled
-                  ? const Color(0xFFFEE2E2)
-                  : const Color(0xFFEFF6FF),
-              child: Icon(
-                isCancelled
-                    ? Icons.event_busy_outlined
-                    : Icons.event_note_outlined,
-                color: isCancelled
-                    ? const Color(0xFFDC2626)
-                    : const Color(0xFF1D4ED8),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: _primary,
-                      fontSize: 17,
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  backgroundColor: isCancelled
+                      ? const Color(0xFFFEE2E2)
+                      : const Color(0xFFEFF6FF),
+                  child: Icon(
+                    isCancelled
+                        ? Icons.event_busy_outlined
+                        : Icons.event_note_outlined,
+                    color: isCancelled
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFF1D4ED8),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _displayDateTime(date, time),
-                    style: const TextStyle(color: _muted),
-                  ),
-                  if (notes.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(notes, style: const TextStyle(color: _muted)),
-                  ],
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusPalette.bg,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      _statusLabel(status),
-                      style: TextStyle(
-                        color: statusPalette.text,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: _primary,
+                          fontSize: 17,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (canCancel)
-              IconButton(
-                tooltip: _isCancelling ? 'Cancelling...' : 'Cancel appointment',
-                onPressed: _isCancelling
-                    ? null
-                    : () => _confirmAndCancelAppointment(
-                        appointmentId: id,
-                        status: status,
+                      const SizedBox(height: 6),
+                      Text(
+                        _displayDateTime(date, time),
+                        style: const TextStyle(color: _muted),
                       ),
-                icon: const Icon(Icons.close),
-                color: const Color(0xFFDC2626),
-              ),
-          ],
+                      if (notes.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(notes, style: const TextStyle(color: _muted)),
+                      ],
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusPalette.bg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          _statusLabel(status),
+                          style: TextStyle(
+                            color: statusPalette.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (canCancel)
+                  IconButton(
+                    tooltip: _isCancelling
+                        ? 'Cancelling...'
+                        : 'Cancel appointment',
+                    onPressed: _isCancelling
+                        ? null
+                        : () => _confirmAndCancelAppointment(
+                            appointmentId: id,
+                            status: status,
+                          ),
+                    icon: const Icon(Icons.close),
+                    color: const Color(0xFFDC2626),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
