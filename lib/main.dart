@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/appointment_detail_screen.dart';
 import 'screens/appointments_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/register_screen.dart';
+import 'services/database_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   String _userName = 'Guest';
   bool _isUserLoggedIn = false;
+  bool _isLoadingUpcoming = false;
+  Map<String, dynamic>? _upcomingAppointment;
 
   String get _malaysiaGreeting {
     final malaysiaTime = DateTime.now().toUtc().add(const Duration(hours: 8));
@@ -68,16 +72,156 @@ class _HomeScreenState extends State<HomeScreen> {
     final savedName = prefs.getString('userName');
     final userId = prefs.getInt('userId');
 
+    if (!mounted) return;
     setState(() {
       _isUserLoggedIn = userId != null;
       if (savedName != null && savedName.isNotEmpty) {
         _userName = savedName;
       }
     });
+
+    await _loadUpcomingAppointment(forceUserId: userId);
+  }
+
+  String _normalizedStatus(String status) {
+    final value = status.trim().toLowerCase();
+    if (value == 'cancelled') return 'cancelled';
+    if (value == 'pending') return 'pending';
+    return 'confirmed';
+  }
+
+  DateTime? _parseAppointmentDateTime(Map<String, dynamic> item) {
+    final rawDate = (item['appointment_date']?.toString() ?? '').trim();
+    final rawTime = (item['appointment_time']?.toString() ?? '').trim();
+
+    if (rawDate.isEmpty) {
+      return null;
+    }
+
+    final timeValue = rawTime.isEmpty
+        ? '00:00:00'
+        : (rawTime.length == 5 ? '$rawTime:00' : rawTime);
+
+    final parsed = DateTime.tryParse('$rawDate $timeValue');
+    if (parsed != null) {
+      return parsed;
+    }
+
+    if (!rawDate.contains('/')) {
+      return null;
+    }
+
+    final dateParts = rawDate.split('/');
+    if (dateParts.length != 3) {
+      return null;
+    }
+
+    final first = int.tryParse(dateParts[0]);
+    final second = int.tryParse(dateParts[1]);
+    final third = int.tryParse(dateParts[2]);
+    if (first == null || second == null || third == null) {
+      return null;
+    }
+
+    final timeParts = timeValue.split(':');
+    final hour = timeParts.isNotEmpty ? int.tryParse(timeParts[0]) ?? 0 : 0;
+    final minute = timeParts.length > 1 ? int.tryParse(timeParts[1]) ?? 0 : 0;
+    final secondValue = timeParts.length > 2
+        ? int.tryParse(timeParts[2]) ?? 0
+        : 0;
+
+    if (dateParts[0].length == 4) {
+      return DateTime(first, second, third, hour, minute, secondValue);
+    }
+
+    return DateTime(third, second, first, hour, minute, secondValue);
+  }
+
+  Map<String, dynamic>? _findNextUpcomingAppointment(
+    List<Map<String, dynamic>> appointments,
+  ) {
+    final now = DateTime.now();
+    final upcoming = appointments.where((item) {
+      final status = item['status']?.toString() ?? 'confirmed';
+      final appointmentDateTime = _parseAppointmentDateTime(item);
+      return _normalizedStatus(status) != 'cancelled' &&
+          appointmentDateTime != null &&
+          (appointmentDateTime.isAtSameMomentAs(now) ||
+              appointmentDateTime.isAfter(now));
+    }).toList();
+
+    if (upcoming.isEmpty) {
+      return null;
+    }
+
+    upcoming.sort((a, b) {
+      final aDate = _parseAppointmentDateTime(a) ?? DateTime(2999);
+      final bDate = _parseAppointmentDateTime(b) ?? DateTime(2999);
+      return aDate.compareTo(bDate);
+    });
+
+    return upcoming.first;
+  }
+
+  Future<void> _loadUpcomingAppointment({int? forceUserId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = forceUserId ?? prefs.getInt('userId');
+
+    if (userId == null) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingUpcoming = false;
+        _upcomingAppointment = null;
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingUpcoming = true;
+    });
+
+    final result = await DatabaseService.getAppointments(userId: userId);
+    final data = result['data'];
+
+    final appointments = data is List
+        ? data
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
+        : <Map<String, dynamic>>[];
+
+    final nextUpcoming = _findNextUpcomingAppointment(appointments);
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingUpcoming = false;
+      _upcomingAppointment = nextUpcoming;
+    });
+  }
+
+  Future<void> _openUpcomingAppointmentDetail() async {
+    if (_upcomingAppointment == null) return;
+
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            AppointmentDetailScreen(appointment: _upcomingAppointment!),
+      ),
+    );
+
+    if (!mounted) return;
+    if (updated == true) {
+      await _loadUpcomingAppointment();
+    }
   }
 
   void _onNavTap(int idx) {
     setState(() => _selectedIndex = idx);
+    if (idx == 0) {
+      _loadUpcomingAppointment();
+    }
   }
 
   @override
@@ -86,6 +230,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _HomeTab(
         isUserLoggedIn: _isUserLoggedIn,
         userName: _userName,
+        isLoadingUpcoming: _isLoadingUpcoming,
+        upcomingAppointment: _upcomingAppointment,
+        onRefreshUpcoming: _loadUpcomingAppointment,
+        onViewUpcomingDetails: _openUpcomingAppointmentDetail,
         onGoToBook: () => _onNavTap(1),
         onGoToAppointments: () => _onNavTap(2),
         onGoToProfile: () => _onNavTap(3),
@@ -177,6 +325,10 @@ class _HomeTab extends StatelessWidget {
   const _HomeTab({
     required this.isUserLoggedIn,
     required this.userName,
+    required this.isLoadingUpcoming,
+    required this.upcomingAppointment,
+    required this.onRefreshUpcoming,
+    required this.onViewUpcomingDetails,
     required this.onGoToBook,
     required this.onGoToAppointments,
     required this.onGoToProfile,
@@ -184,6 +336,10 @@ class _HomeTab extends StatelessWidget {
 
   final bool isUserLoggedIn;
   final String userName;
+  final bool isLoadingUpcoming;
+  final Map<String, dynamic>? upcomingAppointment;
+  final Future<void> Function() onRefreshUpcoming;
+  final VoidCallback onViewUpcomingDetails;
   final VoidCallback onGoToBook;
   final VoidCallback onGoToAppointments;
   final VoidCallback onGoToProfile;
@@ -225,6 +381,15 @@ class _HomeTab extends StatelessWidget {
                   Icon(Icons.tune, color: Color(0xFF94A3B8)),
                 ],
               ),
+            ),
+            const SizedBox(height: 18),
+            _UpcomingAppointmentCard(
+              isLoggedIn: isUserLoggedIn,
+              isLoading: isLoadingUpcoming,
+              appointment: upcomingAppointment,
+              onBookNow: onGoToBook,
+              onViewDetails: onViewUpcomingDetails,
+              onRefresh: onRefreshUpcoming,
             ),
             const SizedBox(height: 18),
             Row(
@@ -406,6 +571,174 @@ class _OverviewTile extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UpcomingAppointmentCard extends StatelessWidget {
+  const _UpcomingAppointmentCard({
+    required this.isLoggedIn,
+    required this.isLoading,
+    required this.appointment,
+    required this.onBookNow,
+    required this.onViewDetails,
+    required this.onRefresh,
+  });
+
+  final bool isLoggedIn;
+  final bool isLoading;
+  final Map<String, dynamic>? appointment;
+  final VoidCallback onBookNow;
+  final VoidCallback onViewDetails;
+  final Future<void> Function() onRefresh;
+
+  String _statusLabel(String status) {
+    final value = status.trim().toLowerCase();
+    if (value == 'cancelled') return 'Cancelled';
+    if (value == 'pending') return 'Pending';
+    return 'Confirmed';
+  }
+
+  String _displayDateTime(String date, String time) {
+    final cleanDate = date.trim();
+    final cleanTime = time.trim();
+    if (cleanDate.isEmpty && cleanTime.isEmpty) {
+      return 'Date and time unavailable';
+    }
+    if (cleanDate.isEmpty) return cleanTime;
+    if (cleanTime.isEmpty) return cleanDate;
+    return '$cleanDate at $cleanTime';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = appointment?['title']?.toString() ?? 'Appointment';
+    final date = appointment?['appointment_date']?.toString() ?? '';
+    final time = appointment?['appointment_time']?.toString() ?? '';
+    final status = appointment?['status']?.toString() ?? 'confirmed';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDBEAFE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.upcoming_outlined, color: Color(0xFF2563EB)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Upcoming Appointment',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: isLoading ? null : onRefresh,
+                tooltip: 'Refresh upcoming appointment',
+                icon: const Icon(Icons.refresh, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (!isLoggedIn || appointment == null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                const Text(
+                  'No upcoming appointments',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: onBookNow,
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: const Text('Book Now'),
+                ),
+              ],
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  service,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule_outlined,
+                      size: 18,
+                      color: Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _displayDateTime(date, time),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Status: ${_statusLabel(status)}',
+                    style: const TextStyle(
+                      color: Color(0xFF1D4ED8),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: onViewDetails,
+                  child: const Text('View Details'),
+                ),
+              ],
+            ),
         ],
       ),
     );
