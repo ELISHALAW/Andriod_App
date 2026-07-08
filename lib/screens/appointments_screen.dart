@@ -65,9 +65,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       _statusMessage = result['message'] ?? '';
       _appointments = data is List
           ? data
-              .whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList()
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
           : [];
     });
   }
@@ -142,7 +142,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     if (parsedDate == null) return null;
 
     if (rawTime.isNotEmpty) {
-      final timeMatch = RegExp(r'^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$').firstMatch(rawTime);
+      final timeMatch = RegExp(
+        r'^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$',
+      ).firstMatch(rawTime);
       if (timeMatch != null) {
         var hour = int.tryParse(timeMatch.group(1) ?? '0') ?? 0;
         final minute = int.tryParse(timeMatch.group(2) ?? '0') ?? 0;
@@ -185,11 +187,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       case AppointmentFilter.upcoming:
         if (normalizedStatus == 'cancelled') return false;
         if (appointmentDateTime == null) return true;
-        return appointmentDateTime.isAfter(now) || _isSameDay(appointmentDateTime, now);
+        return appointmentDateTime.isAfter(now) ||
+            _isSameDay(appointmentDateTime, now);
       case AppointmentFilter.past:
         if (normalizedStatus == 'cancelled') return false;
         if (appointmentDateTime == null) return false;
-        return appointmentDateTime.isBefore(now) && !_isSameDay(appointmentDateTime, now);
+        return appointmentDateTime.isBefore(now) &&
+            !_isSameDay(appointmentDateTime, now);
     }
   }
 
@@ -198,7 +202,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   List<Map<String, dynamic>> _filteredAppointments() {
-    final list = _appointments.where(_matchesSearch).where(_matchesFilter).toList();
+    final list = _appointments
+        .where(_matchesSearch)
+        .where(_matchesFilter)
+        .toList();
     list.sort((a, b) {
       final aDate = _parseAppointmentDate(a);
       final bDate = _parseAppointmentDate(b);
@@ -312,6 +319,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'appointmentsBookFab',
         onPressed: _goToBookingScreen,
         backgroundColor: _primary,
         foregroundColor: Colors.white,
@@ -387,7 +395,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         prefixIcon: const Icon(Icons.search),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -613,5 +624,3 @@ extension AppointmentFilterLabel on AppointmentFilter {
     }
   }
 }
-
-

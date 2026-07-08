@@ -416,8 +416,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                                        DropdownButtonFormField<String>(
-                      value: (clientGender?.isNotEmpty == true) ? clientGender : null,
+                    DropdownButtonFormField<String>(
+                      value: (clientGender?.isNotEmpty == true)
+                          ? clientGender
+                          : null,
                       decoration: InputDecoration(
                         labelText: 'Client gender',
                         prefixIcon: const Icon(
@@ -431,7 +433,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       items: const [
                         DropdownMenuItem(value: 'Male', child: Text('Male')),
-                        DropdownMenuItem(value: 'Female', child: Text('Female')),
+                        DropdownMenuItem(
+                          value: 'Female',
+                          child: Text('Female'),
+                        ),
                         DropdownMenuItem(value: 'Other', child: Text('Other')),
                         DropdownMenuItem(
                           value: 'Prefer not to say',
@@ -995,6 +1000,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'calendarBookFab',
         onPressed: _openBookDialog,
         backgroundColor: _accent,
         foregroundColor: Colors.white,

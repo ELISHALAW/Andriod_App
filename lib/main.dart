@@ -3,9 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/appointment_detail_screen.dart';
 import 'screens/appointments_screen.dart';
 import 'screens/calendar_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'services/database_service.dart';
 
 void main() {
@@ -29,6 +31,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/reset-password': (context) => const ResetPasswordScreen(),
         '/register': (context) => const RegisterScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/calendar': (context) => const CalendarScreen(),

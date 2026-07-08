@@ -204,6 +204,87 @@ class DatabaseService {
     }
   }
 
+  /// Request a password reset token for an email
+  static Future<Map<String, dynamic>> requestPasswordReset({
+    required String email,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/request_password_reset.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body) as Map<String, dynamic>;
+      } on FormatException {
+        return {
+          'success': false,
+          'message': 'Server returned an invalid response. Please try again.',
+          'data': null,
+        };
+      }
+
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Password reset request failed: $e',
+        'data': null,
+      };
+    }
+  }
+
+  /// Reset a user password using a valid, unexpired token
+  static Future<Map<String, dynamic>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/reset_password.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'token': token, 'new_password': newPassword}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body) as Map<String, dynamic>;
+      } on FormatException {
+        return {
+          'success': false,
+          'message': 'Server returned an invalid response. Please try again.',
+          'data': null,
+        };
+      }
+
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Password reset failed: $e',
+        'data': null,
+      };
+    }
+  }
+
   /// Fetch appointments for a user
   static Future<Map<String, dynamic>> getAppointments({
     required int userId,

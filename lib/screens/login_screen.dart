@@ -125,6 +125,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: const InputDecoration(labelText: 'Password'),
                   validator: _validatePassword,
                 ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/forgot-password'),
+                    child: const Text('Forgot Password?'),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 ElevatedButton(onPressed: _submit, child: const Text('Login')),
                 const SizedBox(height: 12),
