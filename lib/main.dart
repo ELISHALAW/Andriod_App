@@ -226,6 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onNavTap(int idx) {
     setState(() => _selectedIndex = idx);
     if (idx == 0) {
+      _loadUserSession();
       _loadUpcomingAppointment();
     }
   }
@@ -283,18 +284,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               actions: [
-                if (!_isUserLoggedIn)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: IconButton(
-                      onPressed: () => Navigator.pushNamed(context, '/login'),
-                      icon: const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Color(0xFFE2E8F0),
-                        child: Icon(Icons.person, color: Color(0xFF0F172A)),
-                      ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0),
+                  child: IconButton(
+                    onPressed: () {
+                      if (_isUserLoggedIn) {
+                        _onNavTap(3);
+                      } else {
+                        Navigator.pushNamed(context, '/login');
+                      }
+                    },
+                    icon: const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFFE2E8F0),
+                      child: Icon(Icons.person, color: Color(0xFF0F172A)),
                     ),
                   ),
+                ),
               ],
             )
           : null,

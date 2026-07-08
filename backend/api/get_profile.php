@@ -58,7 +58,21 @@ if ($conn->connect_error) {
     exit();
 }
 
-$stmt = $conn->prepare('SELECT id, name, email, phone_number, address FROM users WHERE id = ? LIMIT 1');
+$columnCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'profile_image'");
+if ($columnCheck && $columnCheck->num_rows === 0) {
+    if (!$conn->query('ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) NULL')) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to prepare users table: ' . $conn->error,
+            'data' => null,
+        ]);
+        $conn->close();
+        exit();
+    }
+}
+
+$stmt = $conn->prepare('SELECT id, name, email, phone_number, address, profile_image FROM users WHERE id = ? LIMIT 1');
 if (!$stmt) {
     http_response_code(500);
     echo json_encode([
@@ -86,7 +100,7 @@ if ($stmt->num_rows === 0) {
     exit();
 }
 
-$stmt->bind_result($id, $name, $email, $phoneNumber, $address);
+$stmt->bind_result($id, $name, $email, $phoneNumber, $address, $profileImage);
 $stmt->fetch();
 
 echo json_encode([
@@ -98,6 +112,7 @@ echo json_encode([
         'email' => $email,
         'phone_number' => $phoneNumber,
         'address' => $address,
+        'profile_image' => $profileImage,
     ],
 ]);
 

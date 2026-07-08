@@ -96,7 +96,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Name'),
                     validator: (value) =>
-                        (value == null || value.trim().isEmpty) ? 'Enter your name' : null,
+                        (value == null || value.trim().isEmpty)
+                        ? 'Enter your name'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -116,13 +118,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: phoneCtrl,
-                    decoration: const InputDecoration(labelText: 'Phone number'),
+                    decoration: const InputDecoration(
+                      labelText: 'Phone number',
+                    ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Enter your phone';
                       }
-                      final normalized = value.replaceAll(RegExp(r'[\s\-]'), '');
-                      final malaysianPhoneRegex = RegExp(r'^(?:\+601|01)[0-9]{8,9}$');
+                      final normalized = value.replaceAll(
+                        RegExp(r'[\s\-]'),
+                        '',
+                      );
+                      final malaysianPhoneRegex = RegExp(
+                        r'^(?:\+601|01)[0-9]{8,9}$',
+                      );
                       if (!malaysianPhoneRegex.hasMatch(normalized)) {
                         return 'Enter a valid Malaysian phone number';
                       }
@@ -134,7 +143,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: addressCtrl,
                     decoration: const InputDecoration(labelText: 'Address'),
                     validator: (value) =>
-                        (value == null || value.trim().isEmpty) ? 'Enter your address' : null,
+                        (value == null || value.trim().isEmpty)
+                        ? 'Enter your address'
+                        : null,
                   ),
                 ],
               ),
@@ -193,7 +204,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await prefs.setString('userName', _userName);
       await prefs.setString('userEmail', _userEmail);
 
-      _showSuccessSnackBar(result['message'] ?? 'Profile updated successfully.');
+      _showSuccessSnackBar(
+        result['message'] ?? 'Profile updated successfully.',
+      );
     } else {
       _showErrorSnackBar(result['message'] ?? 'Profile update failed.');
     }
@@ -385,7 +398,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
@@ -493,14 +509,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1D4ED8),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           icon: const Icon(Icons.edit),
           label: _isSaving
               ? const SizedBox(
                   height: 18,
                   width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Edit Profile'),
         ),
@@ -510,7 +531,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0F172A),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           icon: const Icon(Icons.logout),
           label: const Text('Logout'),
@@ -522,7 +545,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             foregroundColor: Colors.red,
             side: const BorderSide(color: Colors.red),
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           icon: const Icon(Icons.delete_outline),
           label: _isDeleting
