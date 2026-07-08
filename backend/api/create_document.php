@@ -35,6 +35,7 @@ $userId = isset($input['user_id']) ? intval($input['user_id']) : 0;
 $title = trim($input['title'] ?? '');
 $documentType = trim($input['document_type'] ?? '');
 $fileName = trim($input['file_name'] ?? '');
+$fileContentBase64 = trim($input['file_content_base64'] ?? '');
 $notes = trim($input['notes'] ?? '');
 
 $errors = [];
@@ -49,6 +50,18 @@ if (!empty($errors)) {
         'success' => false,
         'message' => 'Validation failed.',
         'errors' => $errors,
+        'data' => null,
+    ]);
+    exit();
+}
+
+$extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+$allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+if ($extension !== '' && !in_array($extension, $allowedExtensions, true)) {
+    http_response_code(422);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Only PDF and image files are allowed.',
         'data' => null,
     ]);
     exit();
@@ -92,6 +105,55 @@ if (!$conn->query($documentsTableSql)) {
     exit();
 }
 
+if ($fileContentBase64 !== '') {
+    $decodedBytes = base64_decode($fileContentBase64, true);
+    if ($decodedBytes === false || strlen($decodedBytes) === 0) {
+        http_response_code(422);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid file content.',
+            'data' => null,
+        ]);
+        $conn->close();
+        exit();
+    }
+
+    $uploadsDir = __DIR__ . '/uploads';
+    if (!is_dir($uploadsDir) && !mkdir($uploadsDir, 0777, true)) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to prepare upload directory.',
+            'data' => null,
+        ]);
+        $conn->close();
+        exit();
+    }
+
+    $safeBase = preg_replace('/[^A-Za-z0-9_\-]/', '_', pathinfo($fileName, PATHINFO_FILENAME));
+    if ($safeBase === null || $safeBase === '') {
+        $safeBase = 'document';
+    }
+    if ($extension === '') {
+        $extension = 'bin';
+    }
+    $storedFileName = $safeBase . '_' . uniqid() . '.' . $extension;
+    $targetPath = $uploadsDir . '/' . $storedFileName;
+
+    if (file_put_contents($targetPath, $decodedBytes) === false) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to save uploaded file.',
+            'data' => null,
+        ]);
+        $conn->close();
+        exit();
+    }
+
+    $fileName = $storedFileName;
+}
+
 $stmt = $conn->prepare(
     'INSERT INTO documents (user_id, title, document_type, file_name, notes) VALUES (?, ?, ?, ?, ?)'
 );
@@ -127,7 +189,7 @@ http_response_code(201);
 echo json_encode([
     'success' => true,
     'message' => 'Document added successfully.',
-    'data' => ['id' => $documentId],
+    'data' => ['id' => $documentId, 'file_name' => $fileName],
 ]);
 
 $conn->close();

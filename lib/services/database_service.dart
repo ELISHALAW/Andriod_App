@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
 
 class DatabaseService {
   // Update this URL to match your PHP backend location.
@@ -648,8 +649,50 @@ class DatabaseService {
     }
   }
 
+  /// Upload a document (PDF/image) and create its record
+  static Future<Map<String, dynamic>> uploadDocument({
+    required int userId,
+    required String title,
+    required String category,
+    required String fileName,
+    required Uint8List fileBytes,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/create_document.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'user_id': userId,
+              'title': title,
+              'document_type': category,
+              'file_name': fileName,
+              'file_content_base64': base64Encode(fileBytes),
+              'notes': '',
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 || response.statusCode == 201
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Upload document failed: $e',
+        'data': null,
+      };
+    }
+  }
+
   /// Delete a document record
   static Future<Map<String, dynamic>> deleteDocument({
+    required int userId,
     required int documentId,
   }) async {
     try {
@@ -657,7 +700,7 @@ class DatabaseService {
           .post(
             Uri.parse('$baseUrl/delete_document.php'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'id': documentId}),
+            body: jsonEncode({'id': documentId, 'user_id': userId}),
           )
           .timeout(const Duration(seconds: 15));
 

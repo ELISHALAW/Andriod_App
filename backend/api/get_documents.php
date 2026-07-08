@@ -80,46 +80,6 @@ if (!$conn->query($createTableSql)) {
     exit();
 }
 
-$countStmt = $conn->prepare('SELECT COUNT(*) FROM documents WHERE user_id = ?');
-if (!$countStmt) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Database error: ' . $conn->error,
-        'data' => null,
-    ]);
-    $conn->close();
-    exit();
-}
-
-$countStmt->bind_param('i', $userId);
-$countStmt->execute();
-$countStmt->bind_result($count);
-$countStmt->fetch();
-$countStmt->close();
-
-if ($count === 0) {
-    $seedStmt = $conn->prepare(
-        'INSERT INTO documents (user_id, title, document_type, file_name, notes) VALUES (?, ?, ?, ?, ?)'
-    );
-
-    if ($seedStmt) {
-        $samples = [
-            ['Appointment Receipt', 'Receipt', 'appointment_receipt.pdf', 'Sample receipt for your latest booking.'],
-            ['Monthly Invoice', 'Invoice', 'monthly_invoice.pdf', 'Payment document for account billing.'],
-            ['Profile Form', 'Form', 'profile_update_form.pdf', 'Form for keeping profile details current.'],
-        ];
-
-        foreach ($samples as $sample) {
-            [$title, $documentType, $fileName, $notes] = $sample;
-            $seedStmt->bind_param('issss', $userId, $title, $documentType, $fileName, $notes);
-            $seedStmt->execute();
-        }
-
-        $seedStmt->close();
-    }
-}
-
 $stmt = $conn->prepare(
     'SELECT id, user_id, title, document_type, file_name, notes, created_at
      FROM documents

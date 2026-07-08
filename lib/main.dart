@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/appointment_detail_screen.dart';
 import 'screens/appointments_screen.dart';
 import 'screens/calendar_screen.dart';
+import 'screens/documents_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/calendar': (context) => const CalendarScreen(),
         '/appointments': (context) => const AppointmentsScreen(),
+        '/documents': (context) => const DocumentsScreen(),
       },
     );
   }
@@ -240,6 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onViewUpcomingDetails: _openUpcomingAppointmentDetail,
         onGoToBook: () => _onNavTap(1),
         onGoToAppointments: () => _onNavTap(2),
+        onGoToDocuments: () => Navigator.pushNamed(context, '/documents'),
         onGoToProfile: () => _onNavTap(3),
       ),
       const CalendarScreen(),
@@ -335,6 +338,7 @@ class _HomeTab extends StatelessWidget {
     required this.onViewUpcomingDetails,
     required this.onGoToBook,
     required this.onGoToAppointments,
+    required this.onGoToDocuments,
     required this.onGoToProfile,
   });
 
@@ -346,6 +350,7 @@ class _HomeTab extends StatelessWidget {
   final VoidCallback onViewUpcomingDetails;
   final VoidCallback onGoToBook;
   final VoidCallback onGoToAppointments;
+  final VoidCallback onGoToDocuments;
   final VoidCallback onGoToProfile;
 
   @override
@@ -401,6 +406,15 @@ class _HomeTab extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onGoToDocuments,
+                icon: const Icon(Icons.folder_outlined),
+                label: const Text('Documents'),
+              ),
             ),
             const SizedBox(height: 22),
 

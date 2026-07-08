@@ -32,11 +32,12 @@ if (!is_array($input)) {
 }
 
 $documentId = isset($input['id']) ? intval($input['id']) : 0;
-if ($documentId <= 0) {
+$userId = isset($input['user_id']) ? intval($input['user_id']) : 0;
+if ($documentId <= 0 || $userId <= 0) {
     http_response_code(422);
     echo json_encode([
         'success' => false,
-        'message' => 'Document ID is required.',
+        'message' => 'Document ID and user ID are required.',
         'data' => null,
     ]);
     exit();
@@ -58,7 +59,7 @@ if ($conn->connect_error) {
     exit();
 }
 
-$stmt = $conn->prepare('DELETE FROM documents WHERE id = ?');
+$stmt = $conn->prepare('DELETE FROM documents WHERE id = ? AND user_id = ? LIMIT 1');
 if (!$stmt) {
     http_response_code(500);
     echo json_encode([
@@ -70,12 +71,24 @@ if (!$stmt) {
     exit();
 }
 
-$stmt->bind_param('i', $documentId);
+$stmt->bind_param('ii', $documentId, $userId);
 if (!$stmt->execute()) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Failed to delete document: ' . $stmt->error,
+        'data' => null,
+    ]);
+    $stmt->close();
+    $conn->close();
+    exit();
+}
+
+if ($stmt->affected_rows === 0) {
+    http_response_code(404);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Document not found for this user.',
         'data' => null,
     ]);
     $stmt->close();
