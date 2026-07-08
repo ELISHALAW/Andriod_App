@@ -57,6 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isUserLoggedIn = false;
   bool _isLoadingUpcoming = false;
   Map<String, dynamic>? _upcomingAppointment;
+  int _appointmentsThisWeek = 0;
+  int _upcomingToday = 0;
 
   String get _malaysiaGreeting {
     final malaysiaTime = DateTime.now().toUtc().add(const Duration(hours: 8));
@@ -169,6 +171,43 @@ class _HomeScreenState extends State<HomeScreen> {
     return upcoming.first;
   }
 
+  Map<String, int> _buildOverviewCounts(
+    List<Map<String, dynamic>> appointments,
+  ) {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfTomorrow = startOfToday.add(const Duration(days: 1));
+    final weekdayOffset = now.weekday - DateTime.monday;
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: weekdayOffset));
+    final startOfNextWeek = startOfWeek.add(const Duration(days: 7));
+
+    final activeAppointments = appointments.where((item) {
+      final status = item['status']?.toString() ?? 'confirmed';
+      return _normalizedStatus(status) != 'cancelled';
+    }).toList();
+
+    final thisWeekCount = activeAppointments.where((item) {
+      final dt = _parseAppointmentDateTime(item);
+      return dt != null &&
+          dt.isAfter(startOfWeek) &&
+          dt.isBefore(startOfNextWeek);
+    }).length;
+
+    final upcomingTodayCount = activeAppointments.where((item) {
+      final dt = _parseAppointmentDateTime(item);
+      return dt != null &&
+          (dt.isAtSameMomentAs(now) || dt.isAfter(now)) &&
+          dt.isBefore(startOfTomorrow) &&
+          (dt.isAtSameMomentAs(startOfToday) || dt.isAfter(startOfToday));
+    }).length;
+
+    return {'thisWeek': thisWeekCount, 'today': upcomingTodayCount};
+  }
+
   Future<void> _loadUpcomingAppointment({int? forceUserId}) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = forceUserId ?? prefs.getInt('userId');
@@ -178,6 +217,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _isLoadingUpcoming = false;
         _upcomingAppointment = null;
+        _appointmentsThisWeek = 0;
+        _upcomingToday = 0;
       });
       return;
     }
@@ -198,11 +239,14 @@ class _HomeScreenState extends State<HomeScreen> {
         : <Map<String, dynamic>>[];
 
     final nextUpcoming = _findNextUpcomingAppointment(appointments);
+    final overview = _buildOverviewCounts(appointments);
 
     if (!mounted) return;
     setState(() {
       _isLoadingUpcoming = false;
       _upcomingAppointment = nextUpcoming;
+      _appointmentsThisWeek = overview['thisWeek'] ?? 0;
+      _upcomingToday = overview['today'] ?? 0;
     });
   }
 
@@ -239,6 +283,8 @@ class _HomeScreenState extends State<HomeScreen> {
         userName: _userName,
         isLoadingUpcoming: _isLoadingUpcoming,
         upcomingAppointment: _upcomingAppointment,
+        appointmentsThisWeek: _appointmentsThisWeek,
+        upcomingToday: _upcomingToday,
         onRefreshUpcoming: _loadUpcomingAppointment,
         onViewUpcomingDetails: _openUpcomingAppointmentDetail,
         onGoToBook: () => _onNavTap(1),
@@ -340,6 +386,8 @@ class _HomeTab extends StatelessWidget {
     required this.userName,
     required this.isLoadingUpcoming,
     required this.upcomingAppointment,
+    required this.appointmentsThisWeek,
+    required this.upcomingToday,
     required this.onRefreshUpcoming,
     required this.onViewUpcomingDetails,
     required this.onGoToBook,
@@ -352,6 +400,8 @@ class _HomeTab extends StatelessWidget {
   final String userName;
   final bool isLoadingUpcoming;
   final Map<String, dynamic>? upcomingAppointment;
+  final int appointmentsThisWeek;
+  final int upcomingToday;
   final Future<void> Function() onRefreshUpcoming;
   final VoidCallback onViewUpcomingDetails;
   final VoidCallback onGoToBook;
@@ -430,18 +480,11 @@ class _HomeTab extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            const _OverviewTile(
+            _OverviewTile(
               icon: Icons.check_circle_outline,
               title: 'Appointments this week',
-              value: '3',
+              value: '$appointmentsThisWeek',
               color: Color(0xFF2563EB),
-            ),
-            const SizedBox(height: 10),
-            const _OverviewTile(
-              icon: Icons.schedule_outlined,
-              title: 'Upcoming today',
-              value: '1',
-              color: Color(0xFF7C3AED),
             ),
             const SizedBox(height: 10),
             _OverviewTile(
