@@ -365,6 +365,58 @@ class DatabaseService {
     }
   }
 
+  /// Update an appointment
+  static Future<Map<String, dynamic>> updateAppointment({
+    required int id,
+    required int userId,
+    required String title,
+    required String appointmentDate,
+    required String appointmentTime,
+    required String notes,
+    String clientName = '',
+    String clientEmail = '',
+    String clientPhone = '',
+    String clientAge = '',
+    String clientGender = '',
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/update_appointment.php'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'id': id,
+              'user_id': userId,
+              'title': title,
+              'appointment_date': appointmentDate,
+              'appointment_time': appointmentTime,
+              'notes': notes,
+              'client_name': clientName,
+              'client_email': clientEmail,
+              'client_phone': clientPhone,
+              'client_age': clientAge,
+              'client_gender': clientGender,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200
+            ? (data['success'] ?? false)
+            : false,
+        'message': data['message'] ?? 'Unknown response',
+        'data': data['data'] ?? null,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Update appointment failed: $e',
+        'data': null,
+      };
+    }
+  }
+
   /// Cancel an appointment
   static Future<Map<String, dynamic>> cancelAppointment({
     required int appointmentId,

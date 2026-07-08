@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/database_service.dart';
+import 'edit_appointment_screen.dart';
 
 class AppointmentDetailScreen extends StatefulWidget {
   const AppointmentDetailScreen({super.key, required this.appointment});
@@ -14,25 +15,30 @@ class AppointmentDetailScreen extends StatefulWidget {
 
 class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
   bool _isCancelling = false;
+  bool _hasUpdated = false;
+  late Map<String, dynamic> _appointment;
 
   static const Color _primary = Color(0xFF0F172A);
   static const Color _muted = Color(0xFF64748B);
   static const Color _surface = Color(0xFFF8FAFC);
 
-  int get _id => int.tryParse(widget.appointment['id'].toString()) ?? 0;
-  String get _title => widget.appointment['title']?.toString() ?? 'Appointment';
-  String get _date => widget.appointment['appointment_date']?.toString() ?? '';
-  String get _time => widget.appointment['appointment_time']?.toString() ?? '';
-  String get _notes => widget.appointment['notes']?.toString() ?? '';
-  String get _status => widget.appointment['status']?.toString() ?? 'confirmed';
-  String get _clientName => widget.appointment['client_name']?.toString() ?? '';
-  String get _clientEmail =>
-      widget.appointment['client_email']?.toString() ?? '';
-  String get _clientPhone =>
-      widget.appointment['client_phone']?.toString() ?? '';
-  String get _clientAge => widget.appointment['client_age']?.toString() ?? '';
-  String get _clientGender =>
-      widget.appointment['client_gender']?.toString() ?? '';
+  int get _id => int.tryParse(_appointment['id'].toString()) ?? 0;
+  String get _title => _appointment['title']?.toString() ?? 'Appointment';
+  String get _date => _appointment['appointment_date']?.toString() ?? '';
+  String get _time => _appointment['appointment_time']?.toString() ?? '';
+  String get _notes => _appointment['notes']?.toString() ?? '';
+  String get _status => _appointment['status']?.toString() ?? 'confirmed';
+  String get _clientName => _appointment['client_name']?.toString() ?? '';
+  String get _clientEmail => _appointment['client_email']?.toString() ?? '';
+  String get _clientPhone => _appointment['client_phone']?.toString() ?? '';
+  String get _clientAge => _appointment['client_age']?.toString() ?? '';
+  String get _clientGender => _appointment['client_gender']?.toString() ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    _appointment = Map<String, dynamic>.from(widget.appointment);
+  }
 
   String _normalizedStatus(String status) {
     final value = status.trim().toLowerCase();
@@ -82,6 +88,22 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
   String _displayValue(String value) {
     final clean = value.trim();
     return clean.isEmpty ? 'Not provided' : clean;
+  }
+
+  Future<void> _openEdit() async {
+    final updated = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditAppointmentScreen(appointment: _appointment),
+      ),
+    );
+
+    if (!mounted || updated == null) return;
+
+    setState(() {
+      _appointment = updated;
+      _hasUpdated = true;
+    });
   }
 
   Future<void> _cancelAppointment() async {
@@ -134,216 +156,234 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
   Widget build(BuildContext context) {
     final statusPalette = _statusColors(_status);
 
-    return Scaffold(
-      backgroundColor: _surface,
-      appBar: AppBar(
-        title: const Text('Appointment Details'),
-        backgroundColor: Colors.white,
-        foregroundColor: _primary,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 46,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.event_note_outlined,
-                            color: Color(0xFF1D4ED8),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _title,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: _primary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _displayDateTime,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: _muted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        const SizedBox(
-                          width: 90,
-                          child: Text(
-                            'Status',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: _muted,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusPalette.bg,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            _statusLabel(_status),
-                            style: TextStyle(
-                              color: statusPalette.text,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_notes.trim().isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _DetailRow(label: 'Notes', value: _notes),
-                    ],
-                    if (_id > 0) ...[
-                      const SizedBox(height: 12),
-                      _DetailRow(label: 'Booking ID', value: '#$_id'),
-                    ],
-                  ],
-                ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        Navigator.pop(context, _hasUpdated);
+      },
+      child: Scaffold(
+        backgroundColor: _surface,
+        appBar: AppBar(
+          title: const Text('Appointment Details'),
+          backgroundColor: Colors.white,
+          foregroundColor: _primary,
+          elevation: 0,
+          actions: [
+            if (_normalizedStatus(_status) != 'cancelled')
+              TextButton.icon(
+                onPressed: _openEdit,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
               ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.event_note_outlined,
+                              color: Color(0xFF1D4ED8),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _title,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: _primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _displayDateTime,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: _muted,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 90,
+                            child: Text(
+                              'Status',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _muted,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusPalette.bg,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              _statusLabel(_status),
+                              style: TextStyle(
+                                color: statusPalette.text,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_notes.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _DetailRow(label: 'Notes', value: _notes),
+                      ],
+                      if (_id > 0) ...[
+                        const SizedBox(height: 12),
+                        _DetailRow(label: 'Booking ID', value: '#$_id'),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Client Information',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: _primary,
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Client Information',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: _primary,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _DetailRow(
+                        label: 'Name',
+                        value: _displayValue(_clientName),
+                      ),
+                      const SizedBox(height: 10),
+                      _DetailRow(
+                        label: 'Email',
+                        value: _displayValue(_clientEmail),
+                      ),
+                      const SizedBox(height: 10),
+                      _DetailRow(
+                        label: 'Phone',
+                        value: _displayValue(_clientPhone),
+                      ),
+                      const SizedBox(height: 10),
+                      _DetailRow(
+                        label: 'Age',
+                        value: _displayValue(_clientAge),
+                      ),
+                      const SizedBox(height: 10),
+                      _DetailRow(
+                        label: 'Gender',
+                        value: _displayValue(_clientGender),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (_canCancel)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _isCancelling ? null : _cancelAppointment,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      icon: _isCancelling
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.close),
+                      label: const Text(
+                        'Cancel Booking',
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    _DetailRow(
-                      label: 'Name',
-                      value: _displayValue(_clientName),
-                    ),
-                    const SizedBox(height: 10),
-                    _DetailRow(
-                      label: 'Email',
-                      value: _displayValue(_clientEmail),
-                    ),
-                    const SizedBox(height: 10),
-                    _DetailRow(
-                      label: 'Phone',
-                      value: _displayValue(_clientPhone),
-                    ),
-                    const SizedBox(height: 10),
-                    _DetailRow(label: 'Age', value: _displayValue(_clientAge)),
-                    const SizedBox(height: 10),
-                    _DetailRow(
-                      label: 'Gender',
-                      value: _displayValue(_clientGender),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              if (_canCancel)
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _isCancelling ? null : _cancelAppointment,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFDC2626),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    icon: _isCancelling
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.close),
-                    label: const Text(
-                      'Cancel Booking',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'This appointment cannot be cancelled.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _muted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                )
-              else
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'This appointment cannot be cancelled.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _muted,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

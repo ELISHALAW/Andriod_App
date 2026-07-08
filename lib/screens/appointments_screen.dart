@@ -266,7 +266,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   Future<void> _openAppointmentDetail(Map<String, dynamic> item) async {
-    final updated = await Navigator.push<bool>(
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => AppointmentDetailScreen(appointment: item),
@@ -274,9 +274,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
 
     if (!mounted) return;
-    if (updated == true) {
-      await _loadAppointments();
-    }
+    await _loadAppointments();
   }
 
   void _showSnackBar(bool success, String message) {
