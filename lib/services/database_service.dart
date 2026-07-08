@@ -241,6 +241,11 @@ class DatabaseService {
     required String appointmentDate,
     required String appointmentTime,
     required String notes,
+    String clientName = '',
+    String clientEmail = '',
+    String clientPhone = '',
+    String clientAge = '',
+    String clientGender = '',
   }) async {
     try {
       final response = await http
@@ -253,6 +258,11 @@ class DatabaseService {
               'appointment_date': appointmentDate,
               'appointment_time': appointmentTime,
               'notes': notes,
+              'client_name': clientName,
+              'client_email': clientEmail,
+              'client_phone': clientPhone,
+              'client_age': clientAge,
+              'client_gender': clientGender,
             }),
           )
           .timeout(const Duration(seconds: 15));

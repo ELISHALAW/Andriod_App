@@ -36,6 +36,11 @@ $title = trim($input['title'] ?? '');
 $appointmentDate = trim($input['appointment_date'] ?? '');
 $appointmentTime = trim($input['appointment_time'] ?? '');
 $notes = trim($input['notes'] ?? '');
+$clientName = trim($input['client_name'] ?? '');
+$clientEmail = trim($input['client_email'] ?? '');
+$clientPhone = trim($input['client_phone'] ?? '');
+$clientAge = trim($input['client_age'] ?? '');
+$clientGender = trim($input['client_gender'] ?? '');
 
 $errors = [];
 if ($userId <= 0) $errors[] = 'User ID is required.';
@@ -77,6 +82,11 @@ $appointmentsTableSql = "CREATE TABLE IF NOT EXISTS appointments (
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
     notes TEXT NULL,
+    client_name VARCHAR(120) NULL,
+    client_email VARCHAR(180) NULL,
+    client_phone VARCHAR(50) NULL,
+    client_age VARCHAR(20) NULL,
+    client_gender VARCHAR(20) NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'confirmed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -95,7 +105,7 @@ if (!$conn->query($appointmentsTableSql)) {
 }
 
 $stmt = $conn->prepare(
-    'INSERT INTO appointments (user_id, title, appointment_date, appointment_time, notes) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO appointments (user_id, title, appointment_date, appointment_time, notes, client_name, client_email, client_phone, client_age, client_gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
 );
 
 if (!$stmt) {
@@ -109,7 +119,19 @@ if (!$stmt) {
     exit();
 }
 
-$stmt->bind_param('issss', $userId, $title, $appointmentDate, $appointmentTime, $notes);
+$stmt->bind_param(
+    'isssssssss',
+    $userId,
+    $title,
+    $appointmentDate,
+    $appointmentTime,
+    $notes,
+    $clientName,
+    $clientEmail,
+    $clientPhone,
+    $clientAge,
+    $clientGender
+);
 if (!$stmt->execute()) {
     http_response_code(500);
     echo json_encode([
@@ -126,7 +148,7 @@ $appointmentId = $stmt->insert_id;
 $stmt->close();
 
 $selectStmt = $conn->prepare(
-    'SELECT id, user_id, title, appointment_date, TIME_FORMAT(appointment_time, "%H:%i") AS appointment_time, notes, status, created_at
+    'SELECT id, user_id, title, appointment_date, TIME_FORMAT(appointment_time, "%H:%i") AS appointment_time, notes, client_name, client_email, client_phone, client_age, client_gender, status, created_at
      FROM appointments
      WHERE id = ?
      LIMIT 1'

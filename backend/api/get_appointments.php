@@ -65,6 +65,11 @@ $createTableSql = "CREATE TABLE IF NOT EXISTS appointments (
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
     notes TEXT NULL,
+    client_name VARCHAR(120) NULL,
+    client_email VARCHAR(180) NULL,
+    client_phone VARCHAR(50) NULL,
+    client_age VARCHAR(20) NULL,
+    client_gender VARCHAR(20) NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'confirmed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -83,7 +88,7 @@ if (!$conn->query($createTableSql)) {
 }
 
 $stmt = $conn->prepare(
-    'SELECT id, user_id, title, appointment_date, TIME_FORMAT(appointment_time, "%H:%i") AS appointment_time, notes, status, created_at
+    'SELECT id, user_id, title, appointment_date, TIME_FORMAT(appointment_time, "%H:%i") AS appointment_time, notes, client_name, client_email, client_phone, client_age, client_gender, status, created_at
      FROM appointments
      WHERE user_id = ?
      ORDER BY appointment_date ASC, appointment_time ASC'

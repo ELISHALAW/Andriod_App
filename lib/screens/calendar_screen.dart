@@ -206,6 +206,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return null;
   }
 
+  Future<Map<String, String>> _loadClientDefaults(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final profileResult = await DatabaseService.getProfile(userId: userId);
+
+    final profile =
+        profileResult['success'] == true && profileResult['data'] is Map
+        ? Map<String, dynamic>.from(profileResult['data'] as Map)
+        : <String, dynamic>{};
+
+    final defaults = <String, String>{
+      'client_name': (profile['name']?.toString().trim().isNotEmpty == true)
+          ? profile['name'].toString().trim()
+          : (prefs.getString('userName') ?? ''),
+      'client_email': (profile['email']?.toString().trim().isNotEmpty == true)
+          ? profile['email'].toString().trim()
+          : (prefs.getString('userEmail') ?? ''),
+      'client_phone': profile['phone_number']?.toString().trim() ?? '',
+      'client_age': '',
+      'client_gender': '',
+    };
+
+    if (defaults['client_name']!.isEmpty) {
+      defaults['client_name'] = prefs.getString('userName') ?? '';
+    }
+    if (defaults['client_email']!.isEmpty) {
+      defaults['client_email'] = prefs.getString('userEmail') ?? '';
+    }
+
+    return defaults;
+  }
+
   Future<void> _openBookDialog() async {
     final userId = _userId;
     if (userId == null) {
@@ -218,9 +249,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
       return;
     }
 
+    final defaults = await _loadClientDefaults(userId);
+
     final titleCtrl = TextEditingController(text: 'Consultation');
     final notesCtrl = TextEditingController();
+    final clientNameCtrl = TextEditingController(text: defaults['client_name']);
+    final clientEmailCtrl = TextEditingController(
+      text: defaults['client_email'],
+    );
+    final clientPhoneCtrl = TextEditingController(
+      text: defaults['client_phone'],
+    );
+    final clientAgeCtrl = TextEditingController(text: defaults['client_age']);
     final formKey = GlobalKey<FormState>();
+    String? clientGender = defaults['client_gender'];
     String? validationError;
     DateTime pickedDate = _selectedDay.isBefore(DateTime.now())
         ? DateTime.now().add(const Duration(days: 1))
@@ -287,6 +329,120 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       validator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: clientNameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Client name',
+                        prefixIcon: const Icon(
+                          Icons.person_outline,
+                          color: _accent,
+                          size: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: clientEmailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Client email',
+                        prefixIcon: const Icon(
+                          Icons.email_outlined,
+                          color: _accent,
+                          size: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final emailRegex = RegExp(
+                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                        );
+                        return emailRegex.hasMatch(v.trim())
+                            ? null
+                            : 'Enter a valid email';
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: clientPhoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Client phone',
+                        prefixIcon: const Icon(
+                          Icons.phone_outlined,
+                          color: _accent,
+                          size: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: clientAgeCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Client age',
+                        prefixIcon: const Icon(
+                          Icons.cake_outlined,
+                          color: _accent,
+                          size: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      validator: (v) {
+                        final value = v?.trim() ?? '';
+                        if (value.isEmpty) return null;
+                        final parsed = int.tryParse(value);
+                        if (parsed == null) return 'Age must be a number';
+                        if (parsed < 0 || parsed > 120)
+                          return 'Enter a valid age';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                                        DropdownButtonFormField<String>(
+                      value: (clientGender?.isNotEmpty == true) ? clientGender : null,
+                      decoration: InputDecoration(
+                        labelText: 'Client gender',
+                        prefixIcon: const Icon(
+                          Icons.wc_outlined,
+                          color: _accent,
+                          size: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'Male', child: Text('Male')),
+                        DropdownMenuItem(value: 'Female', child: Text('Female')),
+                        DropdownMenuItem(value: 'Other', child: Text('Other')),
+                        DropdownMenuItem(
+                          value: 'Prefer not to say',
+                          child: Text('Prefer not to say'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setS(() {
+                          clientGender = value;
+                        });
+                      },
                     ),
                     const SizedBox(height: 12),
                     InkWell(
@@ -481,6 +637,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           appointmentTime:
                               '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}',
                           notes: notesCtrl.text.trim(),
+                          clientName: clientNameCtrl.text.trim(),
+                          clientEmail: clientEmailCtrl.text.trim(),
+                          clientPhone: clientPhoneCtrl.text.trim(),
+                          clientAge: clientAgeCtrl.text.trim(),
+                          clientGender: clientGender?.trim() ?? '',
                         );
                         setS(() => _isSaving = false);
                         if (mounted) {
